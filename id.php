@@ -20,6 +20,8 @@ class Repo {
 
 	var $tag;
 
+	var $message;
+
 	function __construct($folder = NULL)
 	{
 		$this->path = $folder;
@@ -35,7 +37,8 @@ class Repo {
 
 	function __toString()
 	{
-		return implode(TAB, [$this->hash, $this->nr, $this->tag, $this->path]);
+		return implode(TAB, [$this->hash, $this->nr, $this->tag,
+			str_pad($this->path, 35, ' '), '"'.$this->message.'"']);
 	}
 
 	function check() {
@@ -50,11 +53,22 @@ class Repo {
 		} else {
 			list($this->hash, $this->nr) = $parts;
 		}
+
+		$save = getcwd();
+		chdir($this->path);
+
+		$cmd = 'hg log -l 1 --template "{desc}\n"';
+		//echo '> ', $cmd, BR;
+		exec($cmd, $lines);
+		$this->message = first($lines);
+
+		chdir($save);
 	}
 
 	function install() {
 		$save = getcwd();
 		chdir($this->path);
+
 		$cmd = 'hg pull';
 		echo '> ', $cmd, BR;
 		system($cmd);
@@ -70,6 +84,17 @@ class Repo {
 	function thg() {
 		chdir($this->path);
 		system('thg');
+	}
+
+	function push() {
+		$save = getcwd();
+		chdir($this->path);
+
+		$cmd = 'hg push';
+		echo '> ', $cmd, BR;
+		system($cmd);
+
+		chdir($save);
 	}
 
 }
@@ -91,8 +116,10 @@ class ID {
 
 	function __destruct()
 	{
-		file_put_contents('VERSION.json',
-			json_encode($this->repos, JSON_PRETTY_PRINT));
+		if ($this->repos) {
+			file_put_contents('VERSION.json',
+				json_encode($this->repos, JSON_PRETTY_PRINT));
+		}
 	}
 
 	function getRepoByName($name) {
@@ -102,7 +129,7 @@ class ID {
 				$candidates[] = $r;
 			}
 		}
-		debug($r->path, $name, $candidates);
+		//debug($r->path, $name, $candidates);
 
 		if (sizeof($candidates) == 1) {
 			return first($candidates);
@@ -118,7 +145,15 @@ class ID {
 		call_user_func_array([$this, $cmd], $res);
 	}
 
-	function index() {
+	function index()
+	{
+		$this->dump();
+	}
+
+	/**
+	 * Just shows what is stored in VERSION.json now
+	 */
+	function dump() {
 		foreach ($this->repos as $repo) {
 			echo $repo, BR;
 		}
@@ -146,13 +181,25 @@ class ID {
 	}
 
 	/**
-	 * Runs "hg id" for each repository in VERSION.json
+	 * Runs "hg id" for each repository in VERSION.json. This will replace the VERSION.json
 	 */
 	function check() {
 		foreach ($this->repos as $repo) {
 			$repo->check();
 		}
 		$this->index();
+	}
+
+	/**
+	 * Shows both the current VERSION.json and currently installed versions.
+	 */
+	function compare() {
+		foreach ($this->repos as $r) {
+			echo $r, BR;
+			$r2 = clone $r;	// so that id() will not replace
+			$r2->check();
+			echo $r2, BR;
+		}
 	}
 
 	/**
@@ -187,20 +234,21 @@ class ID {
 	}
 
 	/**
-	 * Checks current versions, does install of new versions, composer
+	 * Checks current versions, does install of new versions, composer (call on LIVE)
 	 */
 	function golive() {
-		$this->check();
+//		$this->check();	// should not be called to prevent overwrite
+		$this->dump();
 		$this->install();
 		$this->composer();
 		$this->check();
 	}
 
 	/**
-	 * Shows the default pull/push location for current folder. Allows to compare current and latest version.
+	 * Shows the default pull/push location for current folder. Allows to compare current and latest version (call on LIVE)
 	 */
 	function info() {
-		$this->check();
+		$this->dump();
 		$remoteOrigin = $this->getPaths();
 		$remoteRepo = $this->fetchRemote($remoteOrigin['default']);
 		foreach ($remoteRepo as $repo) {
@@ -228,8 +276,8 @@ class ID {
 	 * @return Repo[]
 	 */
 	function fetchRemote($url) {
-		$url .= '/raw-file/tip/VERSION.json';
-		echo $url, BR;
+		$url = cap($url) . 'raw-file/tip/VERSION.json';
+		echo 'Downloading from ', $url, BR;
 		$json = file_get_contents($url);
 //		echo $json;
 		$newVersions = (array)json_decode($json);
@@ -243,11 +291,16 @@ class ID {
 	 * Will fetch the latest version available and update to it. Like install but only for the main folder repo (.)
 	 */
 	function update() {
-		$this->check();
+		$this->dump();
 		$remoteOrigin = $this->getPaths();
 		$remoteRepo = $this->fetchRemote($remoteOrigin['default']);
 		/** @var Repo $mainProject */
 		$mainProject = $remoteRepo['.'];
+		$current = $this->repos['.'];
+		echo 'Updating from: ', BR;
+		echo $current, BR;
+		echo 'to: ', BR;
+		echo $mainProject, BR;
 		$mainProject->install();
 	}
 
@@ -302,6 +355,16 @@ class ID {
 		$cmd = 'hg pull';
 		echo '> ', $cmd, BR;
 		system($cmd);
+	}
+
+	function commit() {
+		$cmd = 'hg commit -m "- UPDATE VERSION.json"';
+		echo '> ', $cmd, BR;
+		system($cmd);
+
+		foreach ($this->repos as $repo) {
+			$repo->push();
+		}
 	}
 
 }
