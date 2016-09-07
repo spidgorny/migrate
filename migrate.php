@@ -35,7 +35,15 @@ class Migrate extends Base {
 
 	function __construct()
 	{
-		$this->repos = (array)json_decode(@file_get_contents('VERSION.json'));
+		$json = json_decode(@file_get_contents('VERSION.json'));
+		if ($json->liveServer) {
+			foreach ($json as $key => $val) {
+				$this->$key = $val;
+			}
+			$this->repos = (array)$this->repos;
+		} else {
+			$this->repos = $json;
+		}
 		foreach ($this->repos as &$row) {
 			$row = Repo::decode($row);
 		}
@@ -43,10 +51,9 @@ class Migrate extends Base {
 
 	function __destruct()
 	{
-		if ($this->repos) {
-			file_put_contents('VERSION.json',
-				json_encode($this->repos, JSON_PRETTY_PRINT));
-		}
+		$json = get_object_vars($this);
+		file_put_contents('VERSION.json',
+			json_encode($json, JSON_PRETTY_PRINT));
 	}
 
 	function getRepoByName($name) {
@@ -275,8 +282,6 @@ class Migrate extends Base {
 	}
 
 	function mkdir() {
-		$this->liveServer = 'glore.nintendo.de';
-		$this->deployPath = '/home/depidsvy/glore.nintendo.de';
 		$this->check();
 		$nr = $this->getMain()->nr();
 
@@ -298,8 +303,6 @@ class Migrate extends Base {
 	}
 
 	function rclone() {
-		$this->liveServer = 'glore.nintendo.de';
-		$this->deployPath = '/home/depidsvy/glore.nintendo.de';
 		$nr = $this->getMain()->nr();
 		$this->deployPath .= '/v'.$nr;
 
@@ -310,8 +313,6 @@ class Migrate extends Base {
 	}
 
 	function rpull() {
-		$this->liveServer = 'glore.nintendo.de';
-		$this->deployPath = '/home/depidsvy/glore.nintendo.de';
 		$nr = $this->getMain()->nr();
 		$this->deployPath .= '/v'.$nr;
 
@@ -320,9 +321,6 @@ class Migrate extends Base {
 	}
 
 	function rcomposer() {
-		$this->liveServer = 'glore.nintendo.de';
-		$this->deployPath = '/home/depidsvy/glore.nintendo.de';
-		$this->composerCommand = 'php ~/composer/bin/composer';
 		$nr = $this->getMain()->nr();
 		$this->deployPath .= '/v'.$nr;
 
