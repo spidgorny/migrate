@@ -12,8 +12,15 @@ if (file_exists('lib/nadlib/init.php')) {
 
 require_once __DIR__.'/Base.php';
 require_once __DIR__.'/Repo.php';
+require_once __DIR__.'/Remote.php';
 
 class Migrate extends Base {
+
+	/**
+	 * Server name or IP
+	 * @var string
+	 */
+	var $liveServer = 'no.server.defined.com';
 
 	/**
 	 * Live server path with project files
@@ -71,18 +78,37 @@ class Migrate extends Base {
 		}
 	}
 
+	function run() {
+		$cmd = ifsetor($_SERVER['argv'][1], 'index');
+		$res = array_slice($_SERVER['argv'], 2);
+		//echo $cmd, BR;
+		$modules = [
+			$this,
+			new Remote(
+				$this->repos,
+				$this->liveServer,
+				$this->deployPath,
+				$this->composerCommand
+			),
+		];
+
+		$done = false;
+		foreach ($modules as $module) {
+			$exists = method_exists($module, $cmd);
+			if ($exists) {
+				call_user_func_array([$module, $cmd], $res);
+				$done = true;
+			}
+		}
+
+		if (!$done) {
+			echo 'Command not found: '.$cmd.'('.implode(', ', $res).')', BR;
+		}
+	}
+
 	function index()
 	{
 		$this->dump();
-	}
-
-	/**
-	 * Just shows what is stored in VERSION.json now
-	 */
-	function dump() {
-		foreach ($this->repos as $repo) {
-			echo $repo, BR;
-		}
 	}
 
 	/**
@@ -104,25 +130,6 @@ class Migrate extends Base {
 	 */
 	function del($folder) {
 		unset($this->repos[$folder]);
-	}
-
-	/**
-	 * Runs "hg id" for each repository in VERSION.json. This will replace the VERSION.json
-	 */
-	function check() {
-		/** @var Repo $repo */
-		foreach ($this->repos as $repo) {
-			$repo->check();
-		}
-		$this->index();
-	}
-
-	function checkOnce() {
-		static $checked = false;
-		if (!$checked) {
-			$this->check();
-			$checked = true;
-		}
 	}
 
 	/**
@@ -192,20 +199,6 @@ class Migrate extends Base {
 		foreach ($remoteRepo as $repo) {
 			echo $repo, BR;
 		}
-	}
-
-	function getPaths() {
-		$cmd = 'hg path';
-		echo '> ', $cmd, BR;
-		exec($cmd, $paths);
-		echo implode(BR, $paths), BR;
-		$remoteOrigin = [];
-		foreach ($paths as $remote) {
-			$parts = trimExplode('=', $remote);
-			$remoteOrigin[$parts[0]] = $parts[1];
-		}
-//		debug($remoteOrigin);
-		return $remoteOrigin;
 	}
 
 	/**
@@ -309,143 +302,6 @@ class Migrate extends Base {
 		foreach ($this->repos as $repo) {
 			$repo->push();
 		}
-	}
-
-	/**
-	 * Will ssh to the live server and create subfolder for current version.
-	 */
-	function mkdir() {
-		$this->checkOnce();
-		$nr = $this->getMain()->nr();
-
-		$remoteCmd = 'cd '.$this->deployPath.' && mkdir v'.$nr;
-		$this->ssh_exec($remoteCmd);
-	}
-
-	function getVersionPath() {
-		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
-		return $deployPath;
-	}
-
-	/**
-	 * Will connect to the live server and ls -l.
-	 * @param string $path
-	 */
-	function rls($path = '') {
-		$this->checkOnce();
-		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
-		$remoteCmd = 'cd '.$deployPath.' && ls -l '.$path;
-		$this->ssh_exec($remoteCmd);
-	}
-
-	function rexists() {
-		$this->checkOnce();
-		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
-		$remoteCmd = 'cd '.$deployPath.' && ls -l';
-		$files = $this->ssh_get($remoteCmd);
-		if (sizeof($files) > 5) {	// error message is short
-			return true;
-		}
-		return false;
-	}
-
-	/**
-	 * Will connect to the live server and clone current repository.
-	 */
-	function rclone() {
-		$this->checkOnce();
-		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
-		$paths = $this->getPaths();
-		$default = $paths['default'];
-		$remoteCmd = 'cd '.$deployPath.' && hg clone '.$default .' .';
-		$this->ssh_exec($remoteCmd);
-	}
-
-	/**
-	 * Will run hg status remotely
-	 */
-	function rstatus() {
-		$this->checkOnce();
-		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
-		$remoteCmd = 'cd '.$deployPath.' && hg status';
-		$this->ssh_exec($remoteCmd);
-	}
-
-	/**
-	 * Will pull on the server
-	 */
-	function rpull() {
-		$this->checkOnce();
-		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
-		$remoteCmd = 'cd '.$deployPath.' && hg pull';
-		$this->ssh_exec($remoteCmd);
-	}
-
-	/**
-	 * Will update only the main project on the server. Not recommended. Use rinstall instead.
-	 */
-	function rupdate() {
-		$this->checkOnce();
-		$deployPath = $this->getVersionPath();
-		$remoteCmd = 'cd '.$deployPath.' && hg update';
-		$this->ssh_exec($remoteCmd);
-	}
-
-	/**
-	 * Will update to the exact versions from VERSION.json on the server. All repositories one-by-one. Make sure to run rpull first.
-	 */
-	function rinstall() {
-		$versionPath = $this->getVersionPath();
-		/** @var Repo $repo */
-		foreach ($this->repos as $repo) {
-			echo BR, '## ', $repo->path, BR;
-			$deployPath = $versionPath . '/' . $repo->path();
-			$cmd = 'cd '.$deployPath.' && hg update -r '.$repo->getHash();
-			$this->ssh_exec($cmd);
-		}
-	}
-
-	/**
-	 * Will run composer remotely
-	 */
-	function rcomposer() {
-		$this->checkOnce();
-		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
-		$remoteCmd = 'cd '.$deployPath.' && '.$this->composerCommand.' install --ignore-platform-reqs';
-		$this->ssh_exec($remoteCmd);
-	}
-
-	/**
-	 * Will make a new folder and clone, compose into it or update existing
-	 */
-	function rdeploy() {
-		$exists = $this->rexists();
-		if ($exists) {
-			$this->rpull();
-			$this->rinstall();
-			$this->rcomposer();
-		} else {
-			$this->mkdir();
-			$this->rclone();
-			$this->rcomposer();
-		}
-		$this->rstatus();
-		$nr = $this->getMain()->nr();
-		$this->exec('start http://'.$this->liveServer.'/v'.$nr);
-	}
-
-	/**
-	 * Trying to rcp vendor folder. Not working since rcp not using id_rsa?
-	 */
-	function rvendor() {
-		$userName = $_SERVER['USERNAME'];
-		$home = ifsetor($_SERVER['HOMEDRIVE']) .
-			cap($_SERVER['HOMEPATH']);
-		$publicKeyFile = $home . '.ssh/id_rsa';
-		$remotePath = $this->deployPath . '/v'.$this->getMain()->nr().'/';
-		$this->system('scp -r vendor '.
-			$userName.'@'.$this->liveServer.':'.$remotePath.
-			' -i '.$publicKeyFile);
 	}
 
 }
