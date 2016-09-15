@@ -29,6 +29,16 @@ class Repo {
 		return intval($this->nr);
 	}
 
+	function getHash() {
+		$hash = str_replace('+', '', $this->hash);
+		return $hash;
+	}
+
+	function path() {
+		$path = str_replace('\\', '/', $this->path);
+		return $path;
+	}
+
 	function __toString()
 	{
 		return implode(TAB, [$this->hash, $this->nr, $this->tag,
@@ -67,8 +77,7 @@ class Repo {
 		echo '> ', $cmd, BR;
 		system($cmd);
 
-		$hash = str_replace('+', '', $this->hash);
-		$cmd = 'hg update -r '.$hash;
+		$cmd = 'hg update -r '.$this->getHash();
 		echo '> ', $cmd, BR;
 		system($cmd);
 

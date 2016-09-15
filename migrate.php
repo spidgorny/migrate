@@ -50,6 +50,11 @@ class Migrate extends Base {
 			json_encode($json, JSON_PRETTY_PRINT));
 	}
 
+	/**
+	 * @param $name
+	 * @return Repo
+	 * @throws Exception
+	 */
 	function getRepoByName($name) {
 		$candidates = [];
 		foreach ($this->repos as $r) {
@@ -105,6 +110,7 @@ class Migrate extends Base {
 	 * Runs "hg id" for each repository in VERSION.json. This will replace the VERSION.json
 	 */
 	function check() {
+		/** @var Repo $repo */
 		foreach ($this->repos as $repo) {
 			$repo->check();
 		}
@@ -123,9 +129,10 @@ class Migrate extends Base {
 	 * Shows both the current VERSION.json and currently installed versions.
 	 */
 	function compare() {
-		foreach ($this->repos as $r) {
-			echo $r, BR;
-			$r2 = clone $r;	// so that id() will not replace
+		/** @var Repo $repo */
+		foreach ($this->repos as $repo) {
+			echo $repo, BR;
+			$r2 = clone $repo;	// so that id() will not replace
 			$r2->check();
 			echo $r2, BR;
 		}
@@ -142,6 +149,7 @@ class Migrate extends Base {
 				$repo->install();
 			}
 		} else {
+			/** @var Repo $repo */
 			foreach ($this->repos as $repo) {
 				echo BR, '## ', $repo->path, BR;
 				$repo->install();
@@ -174,7 +182,8 @@ class Migrate extends Base {
 	}
 
 	/**
-	 * Shows the default pull/push location for current folder. Allows to compare current and latest version (call on LIVE)
+	 * Shows the default pull/push location for current folder. Allows to compare current and latest version (call on
+	 * LIVE)
 	 */
 	function info() {
 		$this->dump();
@@ -266,6 +275,7 @@ class Migrate extends Base {
 			$repo = $this->getRepoByName($what);
 			$repo->push();
 		} else {
+			/** @var Repo $repo */
 			foreach ($this->repos as $repo) {
 				$repo->push();
 			}
@@ -281,6 +291,7 @@ class Migrate extends Base {
 			$repo = $this->getRepoByName($what);
 			$repo->pull();
 		} else {
+			/** @var Repo $repo */
 			foreach ($this->repos as $repo) {
 				$repo->pull();
 			}
@@ -294,6 +305,7 @@ class Migrate extends Base {
 		$cmd = 'hg commit -m "- UPDATE VERSION.json"';
 		$this->exec($cmd);
 
+		/** @var Repo $repo */
 		foreach ($this->repos as $repo) {
 			$repo->push();
 		}
@@ -308,6 +320,11 @@ class Migrate extends Base {
 
 		$remoteCmd = 'cd '.$this->deployPath.' && mkdir v'.$nr;
 		$this->ssh_exec($remoteCmd);
+	}
+
+	function getVersionPath() {
+		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
+		return $deployPath;
 	}
 
 	/**
@@ -365,13 +382,27 @@ class Migrate extends Base {
 	}
 
 	/**
-	 * Will update on the server
+	 * Will update only the main project on the server. Not recommended. Use rinstall instead.
 	 */
 	function rupdate() {
 		$this->checkOnce();
-		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
+		$deployPath = $this->getVersionPath();
 		$remoteCmd = 'cd '.$deployPath.' && hg update';
 		$this->ssh_exec($remoteCmd);
+	}
+
+	/**
+	 * Will update to the exact versions from VERSION.json on the server. All repositories one-by-one. Make sure to run rpull first.
+	 */
+	function rinstall() {
+		$versionPath = $this->getVersionPath();
+		/** @var Repo $repo */
+		foreach ($this->repos as $repo) {
+			echo BR, '## ', $repo->path, BR;
+			$deployPath = $versionPath . '/' . $repo->path();
+			$cmd = 'cd '.$deployPath.' && hg update -r '.$repo->getHash();
+			$this->ssh_exec($cmd);
+		}
 	}
 
 	/**
@@ -390,7 +421,8 @@ class Migrate extends Base {
 	function rdeploy() {
 		$exists = $this->rexists();
 		if ($exists) {
-			$this->rupdate();
+			$this->rpull();
+			$this->rinstall();
 			$this->rcomposer();
 		} else {
 			$this->mkdir();
