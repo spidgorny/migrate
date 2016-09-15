@@ -3,6 +3,12 @@
 class Base {
 
 	/**
+	 * Server name or IP
+	 * @var string
+	 */
+	var $liveServer = 'no.server.defined.com';
+
+	/**
 	 * @var Repo[]
 	 */
 	var $repos;
@@ -61,5 +67,34 @@ class Base {
 		return $this->repos['.'];
 	}
 
+
+	function ssh_exec($remoteCmd) {
+		$userName = $_SERVER['USERNAME'];
+		$home = ifsetor($_SERVER['HOMEDRIVE']) .
+			cap($_SERVER['HOMEPATH']);
+		$publicKeyFile = $home . '.ssh/id_rsa';
+		$this->system('ssh '.$userName.'@'.$this->liveServer.' -i '.$publicKeyFile.' "'.$remoteCmd.'"');
+	}
+
+	function ssh_get($remoteCmd) {
+		$userName = $_SERVER['USERNAME'];
+		$home = ifsetor($_SERVER['HOMEDRIVE']) .
+			cap($_SERVER['HOMEPATH']);
+		$publicKeyFile = $home . '.ssh/id_rsa';
+		return $this->exec('ssh '.$userName.'@'.$this->liveServer.' -i '.$publicKeyFile.' "'.$remoteCmd.'"');
+	}
+
+	function test_ssh2() {
+		$userName = $_SERVER['USERNAME'];
+		$home = ifsetor($_SERVER['HOMEDRIVE']) .
+			cap($_SERVER['HOMEPATH']);
+		$publicKeyFile = $home . 'NintendoSlawa.ppk';
+		$privateKeyFile = $home . 'NintendoSlawa.ssh';
+		debug($nr, $userName, $publicKeyFile, $privateKeyFile);
+		$connection = ssh2_connect('glore.nintendo.de', 22);
+		ssh2_auth_pubkey_file($connection, $userName, $publicKeyFile, $privateKeyFile);
+		$stream = ssh2_exec($connection, '/usr/local/bin/php -i');
+		echo $stream;
+	}
 
 }

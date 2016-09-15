@@ -16,12 +16,6 @@ require_once __DIR__.'/Repo.php';
 class Migrate extends Base {
 
 	/**
-	 * Server name or IP
-	 * @var string
-	 */
-	var $liveServer = 'no.server.defined.com';
-
-	/**
 	 * Live server path with project files
 	 * @var
 	 */
@@ -115,6 +109,14 @@ class Migrate extends Base {
 			$repo->check();
 		}
 		$this->index();
+	}
+
+	function checkOnce() {
+		static $checked = false;
+		if (!$checked) {
+			$this->check();
+			$checked = true;
+		}
 	}
 
 	/**
@@ -285,6 +287,9 @@ class Migrate extends Base {
 		}
 	}
 
+	/**
+	 * Will commit the VERSION.json file and push
+	 */
 	function commit() {
 		$cmd = 'hg commit -m "- UPDATE VERSION.json"';
 		$this->exec($cmd);
@@ -294,32 +299,11 @@ class Migrate extends Base {
 		}
 	}
 
-	function ssh_exec($remoteCmd) {
-		$userName = $_SERVER['USERNAME'];
-		$home = ifsetor($_SERVER['HOMEDRIVE']) .
-			cap($_SERVER['HOMEPATH']);
-		$publicKeyFile = $home . '.ssh/id_rsa';
-		$this->system('ssh '.$userName.'@'.$this->liveServer.' -i '.$publicKeyFile.' "'.$remoteCmd.'"');
-	}
-
-	function test_ssh2() {
-		$userName = $_SERVER['USERNAME'];
-		$home = ifsetor($_SERVER['HOMEDRIVE']) .
-			cap($_SERVER['HOMEPATH']);
-		$publicKeyFile = $home . 'NintendoSlawa.ppk';
-		$privateKeyFile = $home . 'NintendoSlawa.ssh';
-		debug($nr, $userName, $publicKeyFile, $privateKeyFile);
-		$connection = ssh2_connect('glore.nintendo.de', 22);
-		ssh2_auth_pubkey_file($connection, $userName, $publicKeyFile, $privateKeyFile);
-		$stream = ssh2_exec($connection, '/usr/local/bin/php -i');
-		echo $stream;
-	}
-
 	/**
 	 * Will ssh to the live server and create subfolder for current version.
 	 */
 	function mkdir() {
-		$this->check();
+		$this->checkOnce();
 		$nr = $this->getMain()->nr();
 
 		$remoteCmd = 'cd '.$this->deployPath.' && mkdir v'.$nr;
@@ -331,17 +315,28 @@ class Migrate extends Base {
 	 * @param string $path
 	 */
 	function rls($path = '') {
-		$this->check();
+		$this->checkOnce();
 		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
 		$remoteCmd = 'cd '.$deployPath.' && ls -l '.$path;
 		$this->ssh_exec($remoteCmd);
+	}
+
+	function rexists() {
+		$this->checkOnce();
+		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
+		$remoteCmd = 'cd '.$deployPath.' && ls -l';
+		$files = $this->ssh_get($remoteCmd);
+		if (sizeof($files) > 5) {	// error message is short
+			return true;
+		}
+		return false;
 	}
 
 	/**
 	 * Will connect to the live server and clone current repository.
 	 */
 	function rclone() {
-		$this->check();
+		$this->checkOnce();
 		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
 		$paths = $this->getPaths();
 		$default = $paths['default'];
@@ -353,7 +348,7 @@ class Migrate extends Base {
 	 * Will run hg status remotely
 	 */
 	function rstatus() {
-		$this->check();
+		$this->checkOnce();
 		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
 		$remoteCmd = 'cd '.$deployPath.' && hg status';
 		$this->ssh_exec($remoteCmd);
@@ -363,7 +358,7 @@ class Migrate extends Base {
 	 * Will pull on the server
 	 */
 	function rpull() {
-		$this->check();
+		$this->checkOnce();
 		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
 		$remoteCmd = 'cd '.$deployPath.' && hg pull';
 		$this->ssh_exec($remoteCmd);
@@ -373,26 +368,52 @@ class Migrate extends Base {
 	 * Will update on the server
 	 */
 	function rupdate() {
-		$this->check();
+		$this->checkOnce();
 		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
 		$remoteCmd = 'cd '.$deployPath.' && hg update';
 		$this->ssh_exec($remoteCmd);
 	}
 
+	/**
+	 * Will run composer remotely
+	 */
 	function rcomposer() {
-		$this->check();
+		$this->checkOnce();
 		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
 		$remoteCmd = 'cd '.$deployPath.' && '.$this->composerCommand.' install --ignore-platform-reqs';
 		$this->ssh_exec($remoteCmd);
 	}
 
+	/**
+	 * Will make a new folder and clone, compose into it or update existing
+	 */
 	function rdeploy() {
-		$this->mkdir();
-		$this->rclone();
-		$this->rcomposer();
+		$exists = $this->rexists();
+		if ($exists) {
+			$this->rupdate();
+			$this->rcomposer();
+		} else {
+			$this->mkdir();
+			$this->rclone();
+			$this->rcomposer();
+		}
 		$this->rstatus();
 		$nr = $this->getMain()->nr();
-		$this->exec('start http://'.$this->liveServer.'/'.$nr);
+		$this->exec('start http://'.$this->liveServer.'/v'.$nr);
+	}
+
+	/**
+	 * Trying to rcp vendor folder. Not working since rcp not using id_rsa?
+	 */
+	function rvendor() {
+		$userName = $_SERVER['USERNAME'];
+		$home = ifsetor($_SERVER['HOMEDRIVE']) .
+			cap($_SERVER['HOMEPATH']);
+		$publicKeyFile = $home . '.ssh/id_rsa';
+		$remotePath = $this->deployPath . '/v'.$this->getMain()->nr().'/';
+		$this->system('scp -r vendor '.
+			$userName.'@'.$this->liveServer.':'.$remotePath.
+			' -i '.$publicKeyFile);
 	}
 
 }
