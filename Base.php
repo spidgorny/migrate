@@ -7,6 +7,27 @@ class Base {
 	 */
 	var $repos;
 
+	/**
+	 * @param $name
+	 * @return Repo
+	 * @throws Exception
+	 */
+	function getRepoByName($name) {
+		$candidates = [];
+		foreach ($this->repos as $r) {
+			if (contains($r->path, $name)) {
+				$candidates[] = $r;
+			}
+		}
+		//debug($r->path, $name, $candidates);
+
+		if (sizeof($candidates) == 1) {
+			return first($candidates);
+		} else {
+			throw new Exception(sizeof($candidates).' matching repos for ['.$name.'] found');
+		}
+	}
+
 	function help() {
 		$rc = new ReflectionClass($this);
 		foreach ($rc->getMethods() as $method) {
@@ -14,7 +35,11 @@ class Base {
 			if ($comment && !contains($comment, '@internal')) {
 				$commentLines = trimExplode("\n", $comment);
 				$commentAbout = $commentLines[1];
-				echo $this->twoTabs($method->getName()), $commentAbout, BR;
+				$commentAbout = trim($commentAbout, " \t\n\r\0\x0B*");
+				if ($commentAbout[0] != '@') {
+					echo $this->twoTabs($method->getName()),
+					$commentAbout, BR;
+				}
 			}
 		}
 	}
@@ -29,6 +54,7 @@ class Base {
 
 	/**
 	 * Will return output
+	 * @internal
 	 * @param $cmd
 	 * @return mixed
 	 */
@@ -40,6 +66,7 @@ class Base {
 
 	/**
 	 * Will echo output to STDOUT
+	 * @internal
 	 * @param $cmd
 	 */
 	function system($cmd) {
@@ -48,6 +75,7 @@ class Base {
 	}
 
 	/**
+	 * @internal
 	 * @return Repo
 	 */
 	function getMain() {

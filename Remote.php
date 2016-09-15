@@ -2,8 +2,6 @@
 
 class Remote extends Base {
 
-	var $repos = [];
-
 	/**
 	 * Server name or IP
 	 * @var string
