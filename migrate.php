@@ -257,11 +257,32 @@ class Migrate extends Base {
 
 	/**
 	 * Only does "hg pull" without any updating
+	 * @param null $what
 	 */
-	function pull() {
-		$cmd = 'hg pull';
-		echo '> ', $cmd, BR;
-		system($cmd);
+	function push($what = NULL) {
+		if ($what) {
+			$repo = $this->getRepoByName($what);
+			$repo->push();
+		} else {
+			foreach ($this->repos as $repo) {
+				$repo->push();
+			}
+		}
+	}
+
+	/**
+	 * Only does "hg pull" without any updating
+	 * @param null $what
+	 */
+	function pull($what = NULL) {
+		if ($what) {
+			$repo = $this->getRepoByName($what);
+			$repo->pull();
+		} else {
+			foreach ($this->repos as $repo) {
+				$repo->pull();
+			}
+		}
 	}
 
 	function commit() {
@@ -281,51 +302,97 @@ class Migrate extends Base {
 		$this->system('ssh '.$userName.'@'.$this->liveServer.' -i '.$publicKeyFile.' "'.$remoteCmd.'"');
 	}
 
+	function test_ssh2() {
+		$userName = $_SERVER['USERNAME'];
+		$home = ifsetor($_SERVER['HOMEDRIVE']) .
+			cap($_SERVER['HOMEPATH']);
+		$publicKeyFile = $home . 'NintendoSlawa.ppk';
+		$privateKeyFile = $home . 'NintendoSlawa.ssh';
+		debug($nr, $userName, $publicKeyFile, $privateKeyFile);
+		$connection = ssh2_connect('glore.nintendo.de', 22);
+		ssh2_auth_pubkey_file($connection, $userName, $publicKeyFile, $privateKeyFile);
+		$stream = ssh2_exec($connection, '/usr/local/bin/php -i');
+		echo $stream;
+	}
+
+	/**
+	 * Will ssh to the live server and create subfolder for current version.
+	 */
 	function mkdir() {
 		$this->check();
 		$nr = $this->getMain()->nr();
 
-		if (false) {
-			$userName = $_SERVER['USERNAME'];
-			$home = ifsetor($_SERVER['HOMEDRIVE']) .
-				cap($_SERVER['HOMEPATH']);
-			$publicKeyFile = $home . 'NintendoSlawa.ppk';
-			$privateKeyFile = $home . 'NintendoSlawa.ssh';
-			debug($nr, $userName, $publicKeyFile, $privateKeyFile);
-			$connection = ssh2_connect('glore.nintendo.de', 22);
-			ssh2_auth_pubkey_file($connection, $userName, $publicKeyFile, $privateKeyFile);
-			$stream = ssh2_exec($connection, '/usr/local/bin/php -i');
-			echo $stream;
-		} else {
-			$remoteCmd = 'cd '.$this->deployPath.' && mkdir v'.$nr;
-			$this->ssh_exec($remoteCmd);
-		}
-	}
-
-	function rclone() {
-		$nr = $this->getMain()->nr();
-		$this->deployPath .= '/v'.$nr;
-
-		$paths = $this->getPaths();
-		$default = $paths['default'];
-		$remoteCmd = 'cd '.$this->deployPath.' && hg clone '.$default .' .';
+		$remoteCmd = 'cd '.$this->deployPath.' && mkdir v'.$nr;
 		$this->ssh_exec($remoteCmd);
 	}
 
-	function rpull() {
-		$nr = $this->getMain()->nr();
-		$this->deployPath .= '/v'.$nr;
+	/**
+	 * Will connect to the live server and ls -l.
+	 * @param string $path
+	 */
+	function rls($path = '') {
+		$this->check();
+		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
+		$remoteCmd = 'cd '.$deployPath.' && ls -l '.$path;
+		$this->ssh_exec($remoteCmd);
+	}
 
-		$remoteCmd = 'cd '.$this->deployPath.' && hg status';
+	/**
+	 * Will connect to the live server and clone current repository.
+	 */
+	function rclone() {
+		$this->check();
+		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
+		$paths = $this->getPaths();
+		$default = $paths['default'];
+		$remoteCmd = 'cd '.$deployPath.' && hg clone '.$default .' .';
+		$this->ssh_exec($remoteCmd);
+	}
+
+	/**
+	 * Will run hg status remotely
+	 */
+	function rstatus() {
+		$this->check();
+		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
+		$remoteCmd = 'cd '.$deployPath.' && hg status';
+		$this->ssh_exec($remoteCmd);
+	}
+
+	/**
+	 * Will pull on the server
+	 */
+	function rpull() {
+		$this->check();
+		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
+		$remoteCmd = 'cd '.$deployPath.' && hg pull';
+		$this->ssh_exec($remoteCmd);
+	}
+
+	/**
+	 * Will update on the server
+	 */
+	function rupdate() {
+		$this->check();
+		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
+		$remoteCmd = 'cd '.$deployPath.' && hg update';
 		$this->ssh_exec($remoteCmd);
 	}
 
 	function rcomposer() {
-		$nr = $this->getMain()->nr();
-		$this->deployPath .= '/v'.$nr;
-
-		$remoteCmd = 'cd '.$this->deployPath.' && '.$this->composerCommand.' install --ignore-platform-reqs';
+		$this->check();
+		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
+		$remoteCmd = 'cd '.$deployPath.' && '.$this->composerCommand.' install --ignore-platform-reqs';
 		$this->ssh_exec($remoteCmd);
+	}
+
+	function rdeploy() {
+		$this->mkdir();
+		$this->rclone();
+		$this->rcomposer();
+		$this->rstatus();
+		$nr = $this->getMain()->nr();
+		$this->exec('start http://'.$this->liveServer.'/'.$nr);
 	}
 
 }

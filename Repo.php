@@ -91,4 +91,15 @@ class Repo {
 		chdir($save);
 	}
 
+	function pull() {
+		$save = getcwd();
+		chdir($this->path);
+
+		$cmd = 'hg pull';
+		echo '> ', $cmd, BR;
+		system($cmd);
+
+		chdir($save);
+	}
+
 }
