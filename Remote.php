@@ -83,15 +83,15 @@ class Remote extends Base {
 	 */
 	function rls($path = '') {
 		$this->checkOnce();
-		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
-		$remoteCmd = 'cd '.$deployPath.' && ls -l '.$path;
+		$versionPath = $this->getVersionPath();
+		$remoteCmd = 'cd '.$versionPath.' && ls -l '.$path;
 		$this->ssh_exec($remoteCmd);
 	}
 
 	function rexists() {
 		$this->checkOnce();
-		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
-		$remoteCmd = 'cd '.$deployPath.' && ls -l';
+		$versionPath = $this->getVersionPath();
+		$remoteCmd = 'cd '.$versionPath.' && ls -l';
 		$files = $this->ssh_get($remoteCmd);
 		if (sizeof($files) > 5) {	// error message is short
 			return true;
@@ -104,10 +104,10 @@ class Remote extends Base {
 	 */
 	function rclone() {
 		$this->checkOnce();
-		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
+		$versionPath = $this->getVersionPath();
 		$paths = $this->getPaths();
 		$default = $paths['default'];
-		$remoteCmd = 'cd '.$deployPath.' && hg clone '.$default .' .';
+		$remoteCmd = 'cd '.$versionPath.' && hg clone '.$default .' .';
 		$this->ssh_exec($remoteCmd);
 	}
 
@@ -116,8 +116,8 @@ class Remote extends Base {
 	 */
 	function rstatus() {
 		$this->checkOnce();
-		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
-		$remoteCmd = 'cd '.$deployPath.' && hg status';
+		$versionPath = $this->getVersionPath();
+		$remoteCmd = 'cd '.$versionPath.' && hg status';
 		$this->ssh_exec($remoteCmd);
 	}
 
@@ -126,9 +126,14 @@ class Remote extends Base {
 	 */
 	function rpull() {
 		$this->checkOnce();
-		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
-		$remoteCmd = 'cd '.$deployPath.' && hg pull';
-		$this->ssh_exec($remoteCmd);
+		$versionPath = $this->getVersionPath();
+		/** @var Repo $repo */
+		foreach ($this->repos as $repo) {
+			echo BR, '## ', $repo->path, BR;
+			$deployPath = $versionPath . '/' . $repo->path();
+			$remoteCmd = 'cd ' . $deployPath . ' && hg pull';
+			$this->ssh_exec($remoteCmd);
+		}
 	}
 
 	/**
@@ -178,6 +183,7 @@ class Remote extends Base {
 			$this->mkdir();
 			$this->rclone();
 			$this->rcomposer();
+			$this->rinstall();
 		}
 		$this->rstatus();
 		$nr = $this->getMain()->nr();
