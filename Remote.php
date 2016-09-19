@@ -174,6 +174,7 @@ class Remote extends Base {
 	 * Will make a new folder and clone, compose into it or update existing
 	 */
 	function rdeploy() {
+		$this->checkOnce();
 		$exists = $this->rexists();
 		if ($exists) {
 			$this->rpull();
