@@ -16,7 +16,9 @@ require_once __DIR__.'/Local.php';
 require_once __DIR__.'/Mercurial.php';
 require_once __DIR__.'/Remote.php';
 
-class Migrate  {
+class Migrate {
+
+	const versionFile = 'VERSION.json';
 
 	/**
 	 * Server name or IP
@@ -43,19 +45,26 @@ class Migrate  {
 	 */
 	var $modules = [];
 
+	/**
+	 * @var Repo[]
+	 */
+	var $repos = [];
+
 	function __construct()
 	{
-		$json = json_decode(@file_get_contents('VERSION.json'));
-		if ($json->liveServer) {
-			foreach ($json as $key => $val) {
-				$this->$key = $val;
+		if (file_exists(self::versionFile)) {
+			$json = json_decode(file_get_contents(self::versionFile));
+			if ($json->liveServer) {
+				foreach ($json as $key => $val) {
+					$this->$key = $val;
+				}
+				$this->repos = (array)$this->repos;
+			} else {
+				$this->repos = $json;
 			}
-			$this->repos = (array)$this->repos;
-		} else {
-			$this->repos = $json;
-		}
-		foreach ($this->repos as &$row) {
-			$row = Repo::decode($row);
+			foreach ($this->repos as &$row) {
+				$row = Repo::decode($row);
+			}
 		}
 
 		$this->modules = [
@@ -79,7 +88,7 @@ class Migrate  {
 		$json = json_encode($json, JSON_PRETTY_PRINT);
 //		echo $json, BR;
 		if ($json) {
-			file_put_contents('VERSION.json', $json);
+			file_put_contents(self::versionFile, $json);
 		} else {
 			echo 'JSON data missing', BR;
 		}
@@ -111,8 +120,23 @@ class Migrate  {
 $n = new InitNADLIB();
 $n->init();
 
+if (!defined('BR')) {
+	define('BR', "\n");
+}
+
 if (!defined('TAB')) {
 	define('TAB', "\t");
+}
+
+if (!function_exists('ifsetor')) {
+	function ifsetor(&$variable, $default = null) {
+		if (isset($variable)) {
+			$tmp = $variable;
+		} else {
+			$tmp = $default;
+		}
+		return $tmp;
+	}
 }
 
 $id = new Migrate();
