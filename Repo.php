@@ -111,4 +111,28 @@ class Repo {
 		chdir($save);
 	}
 
+	function getPaths() {
+		$save = getcwd();
+		chdir($this->path);
+
+		$cmd = 'hg path';
+		echo '> ', $cmd, BR;
+		exec($cmd, $paths);
+		echo implode(BR, $paths), BR;
+		$remoteOrigin = [];
+		foreach ($paths as $remote) {
+			$parts = trimExplode('=', $remote);
+			$remoteOrigin[$parts[0]] = $parts[1];
+		}
+//		debug($remoteOrigin);
+
+		chdir($save);
+		return $remoteOrigin;
+	}
+
+	function getDefaultPath() {
+		$paths = $this->getPaths();
+		return $paths['default'];
+	}
+
 }

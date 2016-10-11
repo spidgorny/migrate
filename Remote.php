@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * Class Remote
+ * @mixin Mercurial
+ */
 class Remote extends Base {
 
 	/**
@@ -88,12 +92,12 @@ class Remote extends Base {
 		$this->ssh_exec($remoteCmd);
 	}
 
-	function rexists() {
+	function rexists($path = '') {
 		$this->checkOnce();
 		$versionPath = $this->getVersionPath();
-		$remoteCmd = 'cd '.$versionPath.' && ls -l';
+		$remoteCmd = 'cd '.$versionPath.' && ls -l '.$path;
 		$files = $this->ssh_get($remoteCmd);
-		if (sizeof($files) > 5) {	// error message is short
+		if (sizeof($files) > 1) {	// error message is short
 			return true;
 		}
 		return false;
@@ -105,7 +109,7 @@ class Remote extends Base {
 	function rclone() {
 		$this->checkOnce();
 		$versionPath = $this->getVersionPath();
-		$paths = $this->getPaths();
+		$paths = $this->getMain()->getPaths();
 		$default = $paths['default'];
 		$remoteCmd = 'cd '.$versionPath.' && hg clone '.$default .' .';
 		$this->ssh_exec($remoteCmd);
@@ -147,7 +151,7 @@ class Remote extends Base {
 	}
 
 	/**
-	 * Will update to the exact versions from VERSION.json on the server. All repositories one-by-one. Make sure to run rpull first.
+	 * Will update to the exact versions from VERSION.json on the server. All repositories one-by-one. Make sure to run rpull() first.
 	 */
 	function rinstall() {
 		$versionPath = $this->getVersionPath();
@@ -175,6 +179,7 @@ class Remote extends Base {
 	 */
 	function rdeploy() {
 		$this->checkOnce();
+		$this->pushAll();
 		$exists = $this->rexists();
 		if ($exists) {
 			$this->rpull();
@@ -187,8 +192,14 @@ class Remote extends Base {
 			$this->rinstall();
 		}
 		$this->rstatus();
+		$this->deployDependencies();
 		$nr = $this->getMain()->nr();
 		$this->exec('start http://'.$this->liveServer.'/v'.$nr);
+	}
+
+	function pushAll() {
+		$m = new Mercurial($this->repos);
+		$m->push();
 	}
 
 	/**
@@ -203,6 +214,26 @@ class Remote extends Base {
 		$this->system('scp -r vendor '.
 			$userName.'@'.$this->liveServer.':'.$remotePath.
 			' -i '.$publicKeyFile);
+	}
+
+	function deployDependencies() {
+		$this->pushAll();
+		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
+		/** @var Repo $repo */
+		foreach ($this->repos as $path => $repo) {
+			if ($path != '.') {
+				$repoPath = $repo->path();
+				if (!$this->rexists($repoPath)) {
+					$remoteCmd = 'cd ' . $deployPath . ' && mkdir -p ' . $repoPath;
+					$this->ssh_exec($remoteCmd);
+
+					$remoteCmd = 'cd ' . $deployPath . ' && hg clone ' . $repo->getDefaultPath() . ' ' . $repoPath;
+					$this->ssh_exec($remoteCmd);
+				}
+			}
+		}
+		$this->rpull();
+		$this->rinstall();
 	}
 
 }

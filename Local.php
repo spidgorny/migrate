@@ -95,7 +95,7 @@ class Local extends Base {
 	 */
 	function info() {
 		$this->dump();
-		$remoteOrigin = $this->getPaths();
+		$remoteOrigin = $this->getMain()->getPaths();
 		$remoteRepo = $this->fetchRemote($remoteOrigin['default']);
 		foreach ($remoteRepo as $repo) {
 			echo $repo, BR;
@@ -124,7 +124,7 @@ class Local extends Base {
 	 */
 	function update() {
 		$this->dump();
-		$remoteOrigin = $this->getPaths();
+		$remoteOrigin = $this->getMain()->getPaths();
 		$remoteRepo = $this->fetchRemote($remoteOrigin['default']);
 		/** @var Repo $mainProject */
 		$mainProject = $remoteRepo['.'];

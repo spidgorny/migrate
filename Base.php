@@ -75,7 +75,6 @@ class Base {
 	}
 
 	/**
-	 * @internal
 	 * @return Repo
 	 */
 	function getMain() {
@@ -108,20 +107,6 @@ class Base {
 			$this->check();
 			$checked = true;
 		}
-	}
-
-	function getPaths() {
-		$cmd = 'hg path';
-		echo '> ', $cmd, BR;
-		exec($cmd, $paths);
-		echo implode(BR, $paths), BR;
-		$remoteOrigin = [];
-		foreach ($paths as $remote) {
-			$parts = trimExplode('=', $remote);
-			$remoteOrigin[$parts[0]] = $parts[1];
-		}
-//		debug($remoteOrigin);
-		return $remoteOrigin;
 	}
 
 }
