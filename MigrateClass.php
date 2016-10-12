@@ -22,6 +22,10 @@ class Migrate {
 	 */
 	var $composerCommand = 'php composer.phar';
 
+	var $remoteUser;
+
+	var $id_rsa;
+
 	/**
 	 * We have too many commands now. They are separated into
 	 * several modules. Each module may have multiple commands.
@@ -59,7 +63,9 @@ class Migrate {
 				$this->repos,
 				$this->liveServer,
 				$this->deployPath,
-				$this->composerCommand
+				$this->composerCommand,
+				$this->remoteUser,
+				$this->id_rsa
 			),
 		];
 	}

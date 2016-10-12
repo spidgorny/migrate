@@ -24,38 +24,44 @@ class Remote extends Base {
 	 */
 	var $composerCommand = 'php composer.phar';
 
-	function __construct(array $repos, $liveServer, $deployPath, $composerCommand) {
+	var $remoteUser;
+
+	var $id_rsa;
+
+	function __construct(array $repos, $liveServer, $deployPath, $composerCommand, $remoteUser, $id_rsa) {
 		$this->repos = $repos;
 		$this->liveServer = $liveServer;
 		$this->deployPath = $deployPath;
 		$this->composerCommand = $composerCommand;
+		$this->remoteUser = $remoteUser;
+		$this->id_rsa = $id_rsa;
+		if (!$this->remoteUser) {
+			$this->remoteUser = $_SERVER['USERNAME'];
+		}
+		if (!$this->id_rsa) {
+			$home = ifsetor($_SERVER['HOMEDRIVE']) .
+				cap($_SERVER['HOMEPATH']);
+			$this->id_rsa = $home . '.ssh/id_rsa';
+		}
 	}
 
 	function ssh_exec($remoteCmd) {
-		$userName = $_SERVER['USERNAME'];
-		$home = ifsetor($_SERVER['HOMEDRIVE']) .
-			cap($_SERVER['HOMEPATH']);
-		$publicKeyFile = $home . '.ssh/id_rsa';
-		$this->system('ssh '.$userName.'@'.$this->liveServer.' -i '.$publicKeyFile.' "'.$remoteCmd.'"');
+		$this->system('ssh '.$this->remoteUser.'@'.$this->liveServer.' -i '.$this->id_rsa.' "'.$remoteCmd.'"');
 	}
 
 	function ssh_get($remoteCmd) {
-		$userName = $_SERVER['USERNAME'];
-		$home = ifsetor($_SERVER['HOMEDRIVE']) .
-			cap($_SERVER['HOMEPATH']);
-		$publicKeyFile = $home . '.ssh/id_rsa';
-		return $this->exec('ssh '.$userName.'@'.$this->liveServer.' -i '.$publicKeyFile.' "'.$remoteCmd.'"');
+		return $this->exec('ssh '.$this->remoteUser.'@'.$this->liveServer.' -i '.$this->id_rsa.' "'.$remoteCmd.'"');
 	}
 
 	function test_ssh2() {
 		$userName = $_SERVER['USERNAME'];
 		$home = ifsetor($_SERVER['HOMEDRIVE']) .
 			cap($_SERVER['HOMEPATH']);
-		$publicKeyFile = $home . 'NintendoSlawa.ppk';
-		$privateKeyFile = $home . 'NintendoSlawa.ssh';
+		$publicKeyFile = $home . 'Slawa.ppk';
+		$privateKeyFile = $home . 'Slawa.ssh';
 		$nr = $this->getMain()->nr();
 		debug($nr, $userName, $publicKeyFile, $privateKeyFile);
-		$connection = ssh2_connect('glore.nintendo.de', 22);
+		$connection = ssh2_connect('asd', 22);
 		ssh2_auth_pubkey_file($connection, $userName, $publicKeyFile, $privateKeyFile);
 		$stream = ssh2_exec($connection, '/usr/local/bin/php -i');
 		echo $stream;
@@ -206,14 +212,10 @@ class Remote extends Base {
 	 * Trying to rcp vendor folder. Not working since rcp not using id_rsa?
 	 */
 	function rvendor() {
-		$userName = $_SERVER['USERNAME'];
-		$home = ifsetor($_SERVER['HOMEDRIVE']) .
-			cap($_SERVER['HOMEPATH']);
-		$publicKeyFile = $home . '.ssh/id_rsa';
 		$remotePath = $this->deployPath . '/v'.$this->getMain()->nr().'/';
 		$this->system('scp -r vendor '.
-			$userName.'@'.$this->liveServer.':'.$remotePath.
-			' -i '.$publicKeyFile);
+			$this->remoteUser.'@'.$this->liveServer.':'.$remotePath.
+			' -i '.$this->id_rsa);
 	}
 
 	function deployDependencies() {
