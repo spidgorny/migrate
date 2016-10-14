@@ -176,6 +176,8 @@ class Remote extends Base {
 	function rcomposer() {
 		$this->checkOnce();
 		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
+		//$this->ssh_exec($this->composerCommand.' clear-cache');
+		$this->ssh_exec($this->composerCommand.' config -g secure-http false');
 		$remoteCmd = 'cd '.$deployPath.' && '.$this->composerCommand.' install --ignore-platform-reqs';
 		$this->ssh_exec($remoteCmd);
 	}
@@ -189,8 +191,8 @@ class Remote extends Base {
 		$exists = $this->rexists();
 		if ($exists) {
 			$this->rpull();
-			$this->rinstall();
 			$this->rcomposer();
+			$this->rinstall();
 		} else {
 			$this->mkdir();
 			$this->rclone();

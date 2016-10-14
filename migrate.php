@@ -9,6 +9,9 @@ if (file_exists('nadlib/init.php')) {
 if (file_exists('lib/nadlib/init.php')) {
 	require_once 'lib/nadlib/init.php';
 }
+if (file_exists('vendor/nadlib/nadlib/init.php')) {
+	require_once 'vendor/nadlib/nadlib/init.php';
+}
 
 require_once __DIR__.'/Repo.php';
 require_once __DIR__.'/Base.php';
