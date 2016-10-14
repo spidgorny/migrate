@@ -42,13 +42,13 @@ class Migrate {
 	{
 		if (file_exists(self::versionFile)) {
 			$json = json_decode(file_get_contents(self::versionFile));
-			if ($json->liveServer) {
+			if (ifsetor($json->liveServer)) {
 				foreach ($json as $key => $val) {
 					$this->$key = $val;
 				}
 				$this->repos = (array)$this->repos;
 			} else {
-				$this->repos = $json;
+				$this->repos = (array)$json;
 			}
 			foreach ($this->repos as &$row) {
 				$row = Repo::decode($row);
