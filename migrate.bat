@@ -1,1 +1,1 @@
-php C:\Users\DEPIDSVY\Programs\migrate.php %*
+php %~dp0migrate.php %*
