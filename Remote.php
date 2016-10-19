@@ -91,6 +91,16 @@ class Remote extends Base {
 	 * Will connect to the live server and ls -l.
 	 * @param string $path
 	 */
+	function rpath($path = '') {
+		$versionPath = $this->deployPath;
+		$remoteCmd = 'cd '.$versionPath.' && ls -l '.$path;
+		$this->ssh_exec($remoteCmd);
+	}
+
+	/**
+	 * Will connect to the live server and ls -l.
+	 * @param string $path
+	 */
 	function rls($path = '') {
 		$this->checkOnce();
 		$versionPath = $this->getVersionPath();
@@ -214,7 +224,7 @@ class Remote extends Base {
 	 * Trying to rcp vendor folder. Not working since rcp not using id_rsa?
 	 */
 	function rvendor() {
-		$remotePath = $this->deployPath . '/v'.$this->getMain()->nr().'/';
+		$remotePath = $this->getVersionPath().'/';
 		$this->system('scp -r vendor '.
 			$this->remoteUser.'@'.$this->liveServer.':'.$remotePath.
 			' -i '.$this->id_rsa);
@@ -222,7 +232,7 @@ class Remote extends Base {
 
 	function deployDependencies() {
 		$this->pushAll();
-		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
+		$deployPath = $this->getVersionPath();
 		/** @var Repo $repo */
 		foreach ($this->repos as $path => $repo) {
 			if ($path != '.') {

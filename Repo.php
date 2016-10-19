@@ -88,11 +88,15 @@ class Repo {
 		chdir($this->path);
 
 		$cmd = 'hg pull';
-		echo '> ', $cmd, BR;
+		if ($this->verbose) {
+			echo '> ', $cmd, BR;
+		}
 		system($cmd);
 
 		$cmd = 'hg update -r '.$this->getHash();
-		echo '> ', $cmd, BR;
+		if ($this->verbose) {
+			echo '> ', $cmd, BR;
+		}
 		system($cmd);
 
 		chdir($save);
@@ -108,7 +112,9 @@ class Repo {
 		chdir($this->path);
 
 		$cmd = 'hg push';
-		echo '> ', $cmd, BR;
+		if ($this->verbose) {
+			echo '> ', $cmd, BR;
+		}
 		system($cmd);
 
 		chdir($save);

@@ -26,7 +26,9 @@ class Mercurial extends Base {
 		/** @var Repo $main */
 		$main = $this->repos['.'];
 		$cmd = 'hg log -r '.$main->hash.': --template "{rev}\t{node|short}\t{date|shortdate}\t{date|age}\t{desc|tabindent}\n"';
-		echo '> ', $cmd, BR;
+		if ($this->verbose) {
+			echo '> ', $cmd, BR;
+		}
 		system($cmd);
 	}
 

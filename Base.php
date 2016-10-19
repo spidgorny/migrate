@@ -74,14 +74,17 @@ class Base {
 
 	/**
 	 * Will echo output to STDOUT
-	 * @internal
 	 * @param $cmd
+	 * @throws Exception
 	 */
 	function system($cmd) {
 		if ($this->verbose) {
 			echo '> ', $cmd, BR;
 		}
-		system($cmd);
+		system($cmd, $exit);
+		if ($exit) {
+			throw new Exception('Command filed. Code: '.$exit.BR.$cmd);
+		}
 	}
 
 	/**
