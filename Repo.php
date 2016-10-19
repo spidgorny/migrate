@@ -12,9 +12,25 @@ class Repo {
 
 	var $message;
 
+	var $date;
+
+	protected $verbose;
+
 	function __construct($folder = NULL)
 	{
 		$this->path = $folder;
+	}
+
+	function setVerbose($v) {
+		$this->verbose = $v;
+	}
+
+	function exec($cmd, &$lines = []) {
+		if ($this->verbose) {
+			echo '> ', $cmd, BR;
+		}
+		$line = exec($cmd, $lines);
+		return $line;
 	}
 
 	static function decode($properties) {
@@ -42,13 +58,12 @@ class Repo {
 	function __toString()
 	{
 		return implode(TAB, [$this->hash, $this->nr, $this->tag,
+			 $this->date,
 			str_pad($this->path, 35, ' '), '"'.$this->message.'"']);
 	}
 
 	function check() {
-		$cmd = 'hg id -int '.$this->path;
-		//echo $cmd, BR;
-		$line = exec($cmd);
+		$line = $this->exec('hg id -int '.$this->path);
 		//echo $line, BR;
 		$parts = trimExplode(' ', $line);
 		//pre_print_r($parts);
@@ -61,10 +76,9 @@ class Repo {
 		$save = getcwd();
 		chdir($this->path);
 
-		$cmd = 'hg log -l 1 --template "{desc}\n"';
-		//echo '> ', $cmd, BR;
-		exec($cmd, $lines);
-		$this->message = first($lines);
+		$cmd = 'hg log -l 1 --template "{date|shortdate}\t{desc}\n"';
+		$this->exec($cmd, $lines);
+		list($this->date, $this->message) = trimExplode(TAB, first($lines));
 
 		chdir($save);
 	}
@@ -105,7 +119,9 @@ class Repo {
 		chdir($this->path);
 
 		$cmd = 'hg pull';
-		echo '> ', $cmd, BR;
+		if ($this->verbose) {
+			echo '> ', $cmd, BR;
+		}
 		system($cmd);
 
 		chdir($save);
@@ -115,9 +131,7 @@ class Repo {
 		$save = getcwd();
 		chdir($this->path);
 
-		$cmd = 'hg path';
-		echo '> ', $cmd, BR;
-		exec($cmd, $paths);
+		$this->exec('hg path', $paths);
 		echo implode(BR, $paths), BR;
 		$remoteOrigin = [];
 		foreach ($paths as $remote) {

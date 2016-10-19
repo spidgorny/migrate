@@ -7,6 +7,12 @@ class Base {
 	 */
 	var $repos;
 
+	protected $verbose;
+
+	function setVerbose($v) {
+		$this->verbose = $v;
+	}
+
 	/**
 	 * @param $name
 	 * @return Repo
@@ -59,7 +65,9 @@ class Base {
 	 * @return mixed
 	 */
 	function exec($cmd) {
-		echo '> ', $cmd, BR;
+		if ($this->verbose) {
+			echo '> ', $cmd, BR;
+		}
 		exec($cmd, $output);
 		return $output;
 	}
@@ -70,7 +78,9 @@ class Base {
 	 * @param $cmd
 	 */
 	function system($cmd) {
-		echo '> ', $cmd, BR;
+		if ($this->verbose) {
+			echo '> ', $cmd, BR;
+		}
 		system($cmd);
 	}
 
@@ -96,6 +106,7 @@ class Base {
 	function check() {
 		/** @var Repo $repo */
 		foreach ($this->repos as $repo) {
+			echo 'Checking ', $repo->path(), BR;
 			$repo->check();
 		}
 		$this->dump();

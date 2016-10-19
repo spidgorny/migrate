@@ -56,10 +56,10 @@ class Migrate {
 		}
 
 		$this->modules = [
-			$this,
-			new Local($this->repos),
-			new Mercurial($this->repos),
-			new Remote(
+			'this' => $this,
+			'Local' => new Local($this->repos),
+			'Mercurial' => new Mercurial($this->repos),
+			'Remote' => new Remote(
 				$this->repos,
 				$this->liveServer,
 				$this->deployPath,
@@ -68,6 +68,15 @@ class Migrate {
 				$this->id_rsa
 			),
 		];
+
+		if (in_array('--verbose', $_SERVER['argv'])) {
+			$this->verbose = true;
+			array_walk($this->repos, function ($repo) {
+				/** @var $repo Repo */
+				$repo->setVerbose(true);
+			});
+			$this->modules['Local']->setVerbose(true);
+		}
 	}
 
 	function __destruct()
@@ -97,6 +106,7 @@ class Migrate {
 				// copy changes to the repos back here for destruction
 				$this->repos = $module->repos;
 				$done = true;
+				break;
 			}
 		}
 
