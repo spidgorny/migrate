@@ -224,7 +224,7 @@ class Remote extends Base {
 	 * Trying to rcp the project to the folder.
 	 */
 	function rcp() {
-		$remotePath = $this->getVersionPath().'/';
+		$remotePath = $this->getVersionPath();
 		$this->system('scp -r -i '.$this->id_rsa.' . '.
 			$this->remoteUser.'@'.$this->liveServer.':'.$remotePath);
 	}
