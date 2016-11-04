@@ -224,6 +224,7 @@ class Remote extends Base {
 	 * Trying to rcp the project to the folder.
 	 */
 	function rcp() {
+		$this->checkOnce();
 		$remotePath = $this->getVersionPath();
 		$this->system('scp -r -i '.$this->id_rsa.' . '.
 			$this->remoteUser.'@'.$this->liveServer.':'.$remotePath);
@@ -233,6 +234,7 @@ class Remote extends Base {
 	 * Trying to rcp vendor folder. Used when composer is not available remotely.
 	 */
 	function rvendor() {
+		$this->checkOnce();
 		$remotePath = $this->getVersionPath().'/';
 		$this->system('scp -r -v -i '.$this->id_rsa.' vendor '.
 			$this->remoteUser.'@'.$this->liveServer.':'.$remotePath);
