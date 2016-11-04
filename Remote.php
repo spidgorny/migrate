@@ -221,13 +221,21 @@ class Remote extends Base {
 	}
 
 	/**
-	 * Trying to rcp vendor folder. Not working since rcp not using id_rsa?
+	 * Trying to rcp the project to the folder.
+	 */
+	function rcp() {
+		$remotePath = $this->getVersionPath().'/';
+		$this->system('scp -r -i '.$this->id_rsa.' . '.
+			$this->remoteUser.'@'.$this->liveServer.':'.$remotePath);
+	}
+
+	/**
+	 * Trying to rcp vendor folder. Used when composer is not available remotely.
 	 */
 	function rvendor() {
 		$remotePath = $this->getVersionPath().'/';
-		$this->system('scp -r vendor '.
-			$this->remoteUser.'@'.$this->liveServer.':'.$remotePath.
-			' -i '.$this->id_rsa);
+		$this->system('scp -r -v -i '.$this->id_rsa.' vendor '.
+			$this->remoteUser.'@'.$this->liveServer.':'.$remotePath);
 	}
 
 	function deployDependencies() {

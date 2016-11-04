@@ -34,30 +34,6 @@ class Base {
 		}
 	}
 
-	function help() {
-		$rc = new ReflectionClass($this);
-		foreach ($rc->getMethods() as $method) {
-			$comment = $method->getDocComment();
-			if ($comment && !contains($comment, '@internal')) {
-				$commentLines = trimExplode("\n", $comment);
-				$commentAbout = $commentLines[1];
-				$commentAbout = trim($commentAbout, " \t\n\r\0\x0B*");
-				if ($commentAbout[0] != '@') {
-					echo $this->twoTabs($method->getName()),
-					$commentAbout, BR;
-				}
-			}
-		}
-	}
-
-	function twoTabs($text) {
-		if (strlen($text) < 8) {
-			$text .= TAB;
-		}
-		$text .= TAB;
-		return $text;
-	}
-
 	/**
 	 * Will return output
 	 * @internal
