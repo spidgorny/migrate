@@ -38,6 +38,8 @@ class Migrate {
 	 */
 	var $repos = [];
 
+	var $verbose = false;
+
 	function __construct()
 	{
 		if (file_exists(self::versionFile)) {
@@ -75,8 +77,17 @@ class Migrate {
 				/** @var $repo Repo */
 				$repo->setVerbose(true);
 			});
-			$this->modules['Local']->setVerbose(true);
+			array_walk($this->modules, function ($mod) {
+				$mod->setVerbose(true);
+			});
+			$pos = array_search('--verbose', $_SERVER['argv']);
+			unset($_SERVER['argv'][$pos]);
+			$_SERVER['argc']--;
 		}
+	}
+
+	function setVerbose($v) {
+		$this->verbose = $v;
 	}
 
 	function __destruct()

@@ -122,7 +122,7 @@ class Local extends Base {
 	/**
 	 * Will fetch the latest version available and update to it. Like install but only for the main folder repo (.)
 	 */
-	function update() {
+	function updateMain() {
 		$this->dump();
 		$remoteOrigin = $this->getMain()->getPaths();
 		$remoteRepo = $this->fetchRemote($remoteOrigin['default']);

@@ -33,6 +33,13 @@ class Repo {
 		return $line;
 	}
 
+	function system($cmd) {
+		if ($this->verbose) {
+			echo '> ', $cmd, BR;
+		}
+		system($cmd);
+	}
+
 	static function decode($properties) {
 		$repo = new static();
 		foreach ((array)$properties AS $key => $value) {
@@ -87,17 +94,8 @@ class Repo {
 		$save = getcwd();
 		chdir($this->path);
 
-		$cmd = 'hg pull';
-		if ($this->verbose) {
-			echo '> ', $cmd, BR;
-		}
-		system($cmd);
-
-		$cmd = 'hg update -r '.$this->getHash();
-		if ($this->verbose) {
-			echo '> ', $cmd, BR;
-		}
-		system($cmd);
+		system('hg pull');
+		system('hg update -r '.$this->getHash());
 
 		chdir($save);
 	}
@@ -111,11 +109,7 @@ class Repo {
 		$save = getcwd();
 		chdir($this->path);
 
-		$cmd = 'hg push';
-		if ($this->verbose) {
-			echo '> ', $cmd, BR;
-		}
-		system($cmd);
+		$this->system('hg push');
 
 		chdir($save);
 	}
@@ -124,11 +118,7 @@ class Repo {
 		$save = getcwd();
 		chdir($this->path);
 
-		$cmd = 'hg pull';
-		if ($this->verbose) {
-			echo '> ', $cmd, BR;
-		}
-		system($cmd);
+		$this->system('hg pull');
 
 		chdir($save);
 	}
@@ -153,6 +143,15 @@ class Repo {
 	function getDefaultPath() {
 		$paths = $this->getPaths();
 		return $paths['default'];
+	}
+
+	public function update() {
+		$save = getcwd();
+		chdir($this->path);
+
+		$this->system('hg update');
+
+		chdir($save);
 	}
 
 }

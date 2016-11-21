@@ -2,8 +2,14 @@
 
 class Mercurial extends Base {
 
+	protected $verbose;
+
 	function __construct(array $repos) {
 		$this->repos = $repos;
+	}
+
+	function setVerbose($v) {
+		$this->verbose = $v;
 	}
 
 	/**
@@ -60,6 +66,22 @@ class Mercurial extends Base {
 			/** @var Repo $repo */
 			foreach ($this->repos as $repo) {
 				$repo->pull();
+			}
+		}
+	}
+
+	/**
+	 * Only does "hg update"
+	 * @param null $what
+	 */
+	function update($what = NULL) {
+		if ($what) {
+			$repo = $this->getRepoByName($what);
+			$repo->update();
+		} else {
+			/** @var Repo $repo */
+			foreach ($this->repos as $repo) {
+				$repo->update();
 			}
 		}
 	}
