@@ -1,5 +1,7 @@
 <?php
 
+namespace spidgorny\migrate;
+
 class Local extends Base {
 
 	function __construct(array $repos) {

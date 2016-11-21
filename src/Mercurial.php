@@ -1,5 +1,7 @@
 <?php
 
+namespace spidgorny\migrate;
+
 class Mercurial extends Base {
 
 	protected $verbose;
@@ -20,7 +22,7 @@ class Mercurial extends Base {
 		try {
 			$repo = $this->getRepoByName($what);
 			$repo->thg();
-		} catch (Exception $e) {
+		} catch (\Exception $e) {
 			echo $e->getMessage(), BR;
 		}
 	}

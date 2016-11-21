@@ -1,5 +1,7 @@
 <?php
 
+namespace spidgorny\migrate;
+
 class Migrate {
 
 	const versionFile = 'VERSION.json';
@@ -136,7 +138,7 @@ class Migrate {
 	}
 
 	function helpAboutClass($class) {
-		$rc = new ReflectionClass($class);
+		$rc = new \ReflectionClass($class);
 		foreach ($rc->getMethods() as $method) {
 			$comment = $method->getDocComment();
 			if ($comment && !contains($comment, '@internal')) {

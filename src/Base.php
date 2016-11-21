@@ -1,5 +1,7 @@
 <?php
 
+namespace spidgorny\migrate;
+
 class Base {
 
 	/**
@@ -16,7 +18,7 @@ class Base {
 	/**
 	 * @param $name
 	 * @return Repo
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	function getRepoByName($name) {
 		$candidates = [];
@@ -30,7 +32,7 @@ class Base {
 		if (sizeof($candidates) == 1) {
 			return first($candidates);
 		} else {
-			throw new Exception(sizeof($candidates).' matching repos for ['.$name.'] found');
+			throw new \Exception(sizeof($candidates).' matching repos for ['.$name.'] found');
 		}
 	}
 
@@ -51,7 +53,7 @@ class Base {
 	/**
 	 * Will echo output to STDOUT
 	 * @param $cmd
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	function system($cmd) {
 		if ($this->verbose) {
@@ -59,7 +61,7 @@ class Base {
 		}
 		system($cmd, $exit);
 		if ($exit) {
-			throw new Exception('Command filed. Code: '.$exit.BR.$cmd);
+			throw new \Exception('Command filed. Code: '.$exit.BR.$cmd);
 		}
 	}
 

@@ -1,0 +1,15 @@
+{
+	"name": "spidgorny/migrate",
+	"license": "Unlicense",
+	"description": "Deployment and migration using Mercurial and ssh",
+	"authors": [
+		{
+			"name": "DEPIDSVY",
+			"email": "depidsvy@nintendo.de"
+		}
+	],
+	"minimum-stability": "dev",
+	"require": {
+		"atoum/atoum": "^2.8"
+	}
+}

@@ -1,5 +1,7 @@
 <?php
 
+namespace spidgorny\migrate;
+
 /**
  * Class Remote
  * @mixin Mercurial

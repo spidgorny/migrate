@@ -1,0 +1,9 @@
+{
+    "liveServer": "no.server.defined.com",
+    "deployPath": "\/srv\/www\/vhosts\/xxx",
+    "composerCommand": "php composer.phar",
+    "remoteUser": null,
+    "id_rsa": null,
+    "repos": [],
+    "verbose": false
+}

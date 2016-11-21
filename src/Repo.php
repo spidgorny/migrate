@@ -1,5 +1,7 @@
 <?php
 
+namespace spidgorny\migrate;
+
 class Repo {
 
 	var $path;
