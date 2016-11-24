@@ -1,3 +1,9 @@
+[![Build Status](https://travis-ci.org/spidgorny/migrate.svg?branch=master)](https://travis-ci.org/spidgorny/migrate)
+[![Code Climate](https://codeclimate.com/github/spidgorny/migrate/badges/gpa.svg)](https://codeclimate.com/github/spidgorny/migrate)
+[![Test Coverage](https://codeclimate.com/github/spidgorny/migrate/badges/coverage.svg)](https://codeclimate.com/github/spidgorny/migrate/coverage)
+[![Issue Count](https://codeclimate.com/github/spidgorny/migrate/badges/issue_count.svg)](https://codeclimate.com/github/spidgorny/migrate)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/b55e022413f546839906f0a1056f6f58)](https://www.codacy.com/app/spidgorny/migrate?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=spidgorny/migrate&amp;utm_campaign=Badge_Grade)
+
 # migrate
 PHP script to handle versioning of mercurial project migration with it's dependent mercurial repositories.
 
