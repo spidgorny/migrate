@@ -204,11 +204,13 @@ class Remote extends Base {
 		if ($exists) {
 			$this->rpull();
 			$this->rcomposer();
+			$this->postinstall();
 			$this->rinstall();
 		} else {
 			$this->mkdir();
 			$this->rclone();
 			$this->rcomposer();
+			$this->postinstall();
 			$this->rinstall();
 		}
 		$this->rstatus();
@@ -260,6 +262,16 @@ class Remote extends Base {
 		}
 		$this->rpull();
 		$this->rinstall();
+	}
+
+	/**
+	 * Will run post-install-cmd scripts from composer.json
+	 */
+	function postinstall() {
+		$deployPath = $this->getVersionPath();
+		$cmd = $this->composerCommand.' run-script post-install-cmd';
+		$remoteCmd = 'cd '.$deployPath.' && '.$cmd;
+		$this->ssh_exec($remoteCmd);
 	}
 
 }
