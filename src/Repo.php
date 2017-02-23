@@ -94,12 +94,16 @@ class Repo {
 
 	function install() {
 		$save = getcwd();
-		chdir($this->path);
+		$ok = @chdir($this->path);
+		if ($ok) {
 
-		system('hg pull');
-		system('hg update -r '.$this->getHash());
+			system('hg pull');
+			system('hg update -r ' . $this->getHash());
 
-		chdir($save);
+			chdir($save);
+		} else {
+			throw new \InvalidArgumentException('Folder '.$this->path.' does not exist. Install aborted.');
+		}
 	}
 
 	function thg() {
