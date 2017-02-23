@@ -2,6 +2,8 @@
 
 namespace spidgorny\migrate;
 
+require_once __DIR__.'/SystemCommandException.php';
+
 /**
  * Class Remote
  * @mixin Mercurial
@@ -31,6 +33,8 @@ class Remote extends Base {
 	var $id_rsa;
 
 	function __construct(array $repos, $liveServer, $deployPath, $composerCommand, $remoteUser, $id_rsa) {
+//		debug($_SERVER); exit;
+
 		$this->repos = $repos;
 		$this->liveServer = $liveServer;
 		$this->deployPath = $deployPath;
@@ -41,10 +45,23 @@ class Remote extends Base {
 			$this->remoteUser = $_SERVER['USERNAME'];
 		}
 		if (!$this->id_rsa) {
-			$home = ifsetor($_SERVER['HOMEDRIVE']) .
-				cap($_SERVER['HOMEPATH']);
+			if ($this->isWindows()) {
+				$home = ifsetor($_SERVER['HOMEDRIVE']) .
+					cap($_SERVER['HOMEPATH']);
+				// for mingw32
+				if ($_SERVER['MSYSTEM'] == "MINGW32") {
+					$home = str_replace('\\', '/', $home);
+					$home = str_replace('c:', '/c', $home);
+				}
+			} else {
+				$home = cap(ifsetor($_SERVER['HOME']));
+			}
 			$this->id_rsa = $home . '.ssh/id_rsa';
 		}
+	}
+
+	function isWindows() {
+		return strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
 	}
 
 	function ssh_exec($remoteCmd) {
@@ -86,6 +103,7 @@ class Remote extends Base {
 
 	function getVersionPath() {
 		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
+		$deployPath = str_replace('\\', '/', $deployPath);
 		return $deployPath;
 	}
 
@@ -114,9 +132,13 @@ class Remote extends Base {
 		$this->checkOnce();
 		$versionPath = $this->getVersionPath();
 		$remoteCmd = 'cd '.$versionPath.' && ls -l '.$path;
-		$files = $this->ssh_get($remoteCmd);
-		if (sizeof($files) > 1) {	// error message is short
-			return true;
+		try {
+			$files = $this->ssh_get($remoteCmd);
+			if (sizeof($files) > 1) {    // error message is short
+				return true;
+			}
+		} catch (\SystemCommandException $e) {
+			// just return false
 		}
 		return false;
 	}
@@ -153,8 +175,12 @@ class Remote extends Base {
 		foreach ($this->repos as $repo) {
 			echo BR, '## ', $repo->path, BR;
 			$deployPath = $versionPath . '/' . $repo->path();
-			$remoteCmd = 'cd ' . $deployPath . ' && hg pull';
-			$this->ssh_exec($remoteCmd);
+			try {
+				$remoteCmd = 'cd ' . $deployPath . ' && hg pull';
+				$this->ssh_exec($remoteCmd);
+			} catch (\SystemCommandException $e) {
+				echo 'Error: '.$e, BR;
+			}
 		}
 	}
 
@@ -173,12 +199,17 @@ class Remote extends Base {
 	 */
 	function rinstall() {
 		$versionPath = $this->getVersionPath();
+//		debug($versionPath);
 		/** @var Repo $repo */
 		foreach ($this->repos as $repo) {
-			echo BR, '## ', $repo->path, BR;
-			$deployPath = $versionPath . '/' . $repo->path();
-			$cmd = 'cd '.$deployPath.' && hg update -r '.$repo->getHash();
-			$this->ssh_exec($cmd);
+			echo BR, '## ', $repo->path(), BR;
+			if ($this->rexists($repo->path())) {
+				$deployPath = $versionPath . '/' . $repo->path();
+				$cmd = 'cd ' . $deployPath . ' && hg update -r ' . $repo->getHash();
+				$this->ssh_exec($cmd);
+			} else {
+				echo 'Error: '.$repo->path.' is not on the server. Maybe do rdeploy?', BR;
+			}
 		}
 	}
 
@@ -187,7 +218,7 @@ class Remote extends Base {
 	 */
 	function rcomposer() {
 		$this->checkOnce();
-		$deployPath = $this->deployPath . '/v'.$this->getMain()->nr();
+		$deployPath = $this->getVersionPath();
 		//$this->ssh_exec($this->composerCommand.' clear-cache');
 		$this->ssh_exec($this->composerCommand.' config -g secure-http false');
 		$remoteCmd = 'cd '.$deployPath.' && '.$this->composerCommand.' install --ignore-platform-reqs';
@@ -200,7 +231,12 @@ class Remote extends Base {
 	function rdeploy() {
 		$this->checkOnce();
 		$this->pushAll();
-		$exists = $this->rexists();
+		try {
+			$exists = $this->rexists();
+		} catch (\SystemCommandException $e) {
+			$exists = false;
+		}
+		echo 'The destination folder ', $this->getVersionPath() . ($exists ? ' exists' : 'does not exist'), BR;
 		if ($exists) {
 			$this->rpull();
 			$this->rcomposer();
@@ -268,10 +304,16 @@ class Remote extends Base {
 	 * Will run post-install-cmd scripts from composer.json
 	 */
 	function postinstall() {
-		$deployPath = $this->getVersionPath();
-		$cmd = $this->composerCommand.' run-script post-install-cmd';
-		$remoteCmd = 'cd '.$deployPath.' && '.$cmd;
-		$this->ssh_exec($remoteCmd);
+		if (file_exists('composer.json')) {
+			$composer = json_decode(file_get_contents('composer.json'));
+			//debug($composer);
+			if (isset($composer->scripts) && isset($composer->scripts->{'post-install-cmd'})) {
+				$cmd = $this->composerCommand . ' run-script post-install-cmd';
+				$deployPath = $this->getVersionPath();
+				$remoteCmd = 'cd ' . $deployPath . ' && ' . $cmd;
+				$this->ssh_exec($remoteCmd);
+			}
+		}
 	}
 
 }
