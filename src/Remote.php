@@ -229,27 +229,41 @@ class Remote extends Base {
 	 * Will make a new folder and clone, compose into it or update existing
 	 */
 	function rdeploy() {
+		echo BR, TAB, TAB, '### checkOnce', BR;
 		$this->checkOnce();
+
+		echo BR, TAB, TAB, '### pushAll', BR;
 		$this->pushAll();
 		try {
 			$exists = $this->rexists();
 		} catch (\SystemCommandException $e) {
 			$exists = false;
 		}
-		echo 'The destination folder ', $this->getVersionPath() . ($exists ? ' exists' : 'does not exist'), BR;
+		echo 'The destination folder ', $this->getVersionPath() . ($exists ? ' exists' : 'does not exist'), BR, BR;
 		if ($exists) {
+			echo BR, TAB, TAB, '### rpull', BR;
 			$this->rpull();
+			echo BR, TAB, TAB, '### rcomposer', BR;
 			$this->rcomposer();
+			echo BR, TAB, TAB, '### postinstall', BR;
 			$this->postinstall();
+			echo BR, TAB, TAB, '### rinstall', BR;
 			$this->rinstall();
 		} else {
+			echo BR, TAB, TAB, '### mkdir', BR;
 			$this->mkdir();
+			echo BR, TAB, TAB, '### rclone', BR;
 			$this->rclone();
+			echo BR, TAB, TAB, '### rcomposer', BR;
 			$this->rcomposer();
+			echo BR, TAB, TAB, '### postinstall', BR;
 			$this->postinstall();
+			echo BR, TAB, TAB, '### rinstall', BR;
 			$this->rinstall();
 		}
+		echo BR, TAB, TAB, '### rstatus', BR;
 		$this->rstatus();
+		echo BR, TAB, TAB, '### deployDependencies', BR;
 		$this->deployDependencies();
 		$nr = $this->getMain()->nr();
 		$this->exec('start http://'.$this->liveServer.'/v'.$nr);
@@ -262,12 +276,16 @@ class Remote extends Base {
 
 	/**
 	 * Trying to rcp the project to the folder.
+	 * @param string $path
 	 */
-	function rcp() {
+	function rcp($path = '.') {
+		$this->setVerbose(true);
 		$this->checkOnce();
 		$remotePath = $this->getVersionPath();
-		$this->system('scp -r -i '.$this->id_rsa.' . '.
-			$this->remoteUser.'@'.$this->liveServer.':'.$remotePath);
+		$this->system('scp -r -i '.$this->id_rsa.' '.
+			escapeshellarg($path). ' ' .
+			$this->remoteUser.'@'.$this->liveServer.
+			':'.$remotePath.'/'.$path);
 	}
 
 	/**
