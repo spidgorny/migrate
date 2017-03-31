@@ -282,10 +282,11 @@ class Remote extends Base {
 		$this->setVerbose(true);
 		$this->checkOnce();
 		$remotePath = $this->getVersionPath();
+		$pathLinux = str_replace('\\', '/', $path);
 		$this->system('scp -r -i '.$this->id_rsa.' '.
 			escapeshellarg($path). ' ' .
 			$this->remoteUser.'@'.$this->liveServer.
-			':'.$remotePath.'/'.$path);
+			':'.$remotePath.'/'.$pathLinux);
 	}
 
 	/**
