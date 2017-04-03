@@ -246,7 +246,7 @@ class Remote extends Base {
 			echo BR, TAB, TAB, '### rcomposer', BR;
 			$this->rcomposer();
 			echo BR, TAB, TAB, '### postinstall', BR;
-			$this->postinstall();
+			$this->rpostinstall();
 			echo BR, TAB, TAB, '### rinstall', BR;
 			$this->rinstall();
 		} else {
@@ -257,7 +257,7 @@ class Remote extends Base {
 			echo BR, TAB, TAB, '### rcomposer', BR;
 			$this->rcomposer();
 			echo BR, TAB, TAB, '### postinstall', BR;
-			$this->postinstall();
+			$this->rpostinstall();
 			echo BR, TAB, TAB, '### rinstall', BR;
 			$this->rinstall();
 		}
@@ -322,7 +322,7 @@ class Remote extends Base {
 	/**
 	 * Will run post-install-cmd scripts from composer.json
 	 */
-	function postinstall() {
+	function rpostinstall() {
 		if (file_exists('composer.json')) {
 			$composer = json_decode(file_get_contents('composer.json'));
 			//debug($composer);
