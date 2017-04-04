@@ -11,7 +11,13 @@ class Base {
 
 	protected $verbose;
 
+	/**
+	 * @var string
+	 */
+	protected $branch = 'default';
+
 	function setVerbose($v) {
+		//echo '$$$ setVerbose('.$v.')', BR;
 		$this->verbose = $v;
 	}
 

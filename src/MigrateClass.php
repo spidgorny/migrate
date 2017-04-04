@@ -42,6 +42,11 @@ class Migrate {
 
 	var $verbose = false;
 
+	/**
+	 * @var 'default' by default
+	 */
+	var $branch = 'default';
+
 	function __construct()
 	{
 		if (file_exists(self::versionFile)) {
@@ -69,11 +74,13 @@ class Migrate {
 				$this->deployPath,
 				$this->composerCommand,
 				$this->remoteUser,
-				$this->id_rsa
+				$this->id_rsa,
+				$this->branch
 			),
 		];
 
-		if (in_array('--verbose', $_SERVER['argv'])) {
+		if (in_array('--verbose', $_SERVER['argv'])
+			|| $this->verbose) {
 			$this->verbose = true;
 			array_walk($this->repos, function ($repo) {
 				/** @var $repo Repo */
@@ -108,12 +115,13 @@ class Migrate {
 
 	function run() {
 		$cmd = ifsetor($_SERVER['argv'][1], 'index');
-		$res = array_slice($_SERVER['argv'], 2);
+		$res = array_slice($_SERVER['argv'], 1);
 		//echo $cmd, BR;
 		$done = false;
 		foreach ($this->modules as $module) {
 			$exists = method_exists($module, $cmd);
 			if ($exists) {
+				echo "> ", get_class($module), '->', $cmd, '(', json_encode($res).')', BR;
 				call_user_func_array([$module, $cmd], $res);
 
 				// copy changes to the repos back here for destruction

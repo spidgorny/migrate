@@ -32,7 +32,7 @@ class Remote extends Base {
 
 	var $id_rsa;
 
-	function __construct(array $repos, $liveServer, $deployPath, $composerCommand, $remoteUser, $id_rsa) {
+	function __construct(array $repos, $liveServer, $deployPath, $composerCommand, $remoteUser, $id_rsa, $branch) {
 //		debug($_SERVER); exit;
 
 		$this->repos = $repos;
@@ -41,6 +41,8 @@ class Remote extends Base {
 		$this->composerCommand = $composerCommand;
 		$this->remoteUser = $remoteUser;
 		$this->id_rsa = $id_rsa;
+		$this->branch = $branch;
+
 		if (!$this->remoteUser) {
 			$this->remoteUser = $_SERVER['USERNAME'];
 		}
@@ -176,8 +178,13 @@ class Remote extends Base {
 			echo BR, '## ', $repo->path, BR;
 			$deployPath = $versionPath . '/' . $repo->path();
 			try {
-				$remoteCmd = 'cd ' . $deployPath . ' && hg pull';
-				$this->ssh_exec($remoteCmd);
+				$exists = $this->rexists($deployPath);
+				if ($exists) {
+					$remoteCmd = 'cd ' . $deployPath . ' && hg pull';
+					$this->ssh_exec($remoteCmd);
+				} else {
+					echo TAB, '*** path ', $deployPath, ' does not exist', BR;
+				}
 			} catch (\SystemCommandException $e) {
 				echo 'Error: '.$e, BR;
 			}
@@ -190,7 +197,8 @@ class Remote extends Base {
 	function rupdate() {
 		$this->checkOnce();
 		$deployPath = $this->getVersionPath();
-		$remoteCmd = 'cd '.$deployPath.' && hg update';
+		$branch = $this->branch ?: 'default';
+		$remoteCmd = 'cd '.$deployPath.' && hg update -r '.$branch;
 		$this->ssh_exec($remoteCmd);
 	}
 
@@ -239,30 +247,36 @@ class Remote extends Base {
 		} catch (\SystemCommandException $e) {
 			$exists = false;
 		}
+
 		echo 'The destination folder ', $this->getVersionPath() . ($exists ? ' exists' : 'does not exist'), BR, BR;
 		if ($exists) {
 			echo BR, TAB, TAB, '### rpull', BR;
 			$this->rpull();
-			echo BR, TAB, TAB, '### rcomposer', BR;
-			$this->rcomposer();
-			echo BR, TAB, TAB, '### postinstall', BR;
-			$this->rpostinstall();
-			echo BR, TAB, TAB, '### rinstall', BR;
-			$this->rinstall();
 		} else {
 			echo BR, TAB, TAB, '### mkdir', BR;
 			$this->mkdir();
+
 			echo BR, TAB, TAB, '### rclone', BR;
 			$this->rclone();
-			echo BR, TAB, TAB, '### rcomposer', BR;
-			$this->rcomposer();
-			echo BR, TAB, TAB, '### postinstall', BR;
-			$this->rpostinstall();
-			echo BR, TAB, TAB, '### rinstall', BR;
-			$this->rinstall();
 		}
+
+		echo BR, TAB, TAB, '### rupdate', BR;
+		$this->rupdate();
+
+		echo BR, TAB, TAB, '### rcomposer', BR;
+		$this->rcp('composer.json');
+		$this->rcp('composer.lock');
+		$this->rcomposer();
+
+		echo BR, TAB, TAB, '### postinstall', BR;
+		$this->rpostinstall();
+
+		echo BR, TAB, TAB, '### rinstall', BR;
+		$this->rinstall();
+
 		echo BR, TAB, TAB, '### rstatus', BR;
 		$this->rstatus();
+
 		echo BR, TAB, TAB, '### deployDependencies', BR;
 		$this->deployDependencies();
 		$nr = $this->getMain()->nr();
