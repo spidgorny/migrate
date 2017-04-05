@@ -115,7 +115,7 @@ class Migrate {
 
 	function run() {
 		$cmd = ifsetor($_SERVER['argv'][1], 'index');
-		$res = array_slice($_SERVER['argv'], 1);
+		$res = array_slice($_SERVER['argv'], 2);
 		//echo $cmd, BR;
 		$done = false;
 		foreach ($this->modules as $module) {
