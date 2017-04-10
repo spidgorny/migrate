@@ -169,4 +169,13 @@ class Migrate {
 		return $text;
 	}
 
+	/**
+	 * Pull, Update, Composer
+	 */
+	function puc() {
+		$this->modules['Mercurial']->pull();
+		$this->modules['Mercurial']->update();
+		$this->modules['Local']->composer();
+	}
+
 }
