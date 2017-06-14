@@ -94,12 +94,16 @@ class Repo {
 
 	function install() {
 		$save = getcwd();
-		chdir($this->path);
+		$ok = @chdir($this->path);
+		if ($ok) {
 
-		system('hg pull');
-		system('hg update -r '.$this->getHash());
+			system('hg pull');
+			system('hg update -r ' . $this->getHash());
 
-		chdir($save);
+			chdir($save);
+		} else {
+			throw new \InvalidArgumentException('Folder '.$this->path.' does not exist. Install aborted.');
+		}
 	}
 
 	function thg() {
@@ -110,18 +114,14 @@ class Repo {
 	function push() {
 		$save = getcwd();
 		chdir($this->path);
-
 		$this->system('hg push');
-
 		chdir($save);
 	}
 
 	function pull() {
 		$save = getcwd();
 		chdir($this->path);
-
 		$this->system('hg pull');
-
 		chdir($save);
 	}
 
@@ -150,9 +150,15 @@ class Repo {
 	public function update() {
 		$save = getcwd();
 		chdir($this->path);
-
 		$this->system('hg update');
+		chdir($save);
+	}
 
+	public function status() {
+		echo TAB, 'Repo: ', $this->path(), BR;
+		$save = getcwd();
+		chdir($this->path);
+		$this->system('hg status');
 		chdir($save);
 	}
 

@@ -11,7 +11,13 @@ class Base {
 
 	protected $verbose;
 
+	/**
+	 * @var string
+	 */
+	protected $branch = 'default';
+
 	function setVerbose($v) {
+		//echo '$$$ setVerbose('.$v.')', BR;
 		$this->verbose = $v;
 	}
 
@@ -61,7 +67,7 @@ class Base {
 		}
 		system($cmd, $exit);
 		if ($exit) {
-			throw new \Exception('Command filed. Code: '.$exit.BR.$cmd);
+			throw new \SystemCommandException('Command filed. Code: '.$exit.BR.$cmd);
 		}
 	}
 

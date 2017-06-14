@@ -2,14 +2,11 @@
 
 if (file_exists('vendor/spidgorny/nadlib/init.php')) {
 	require_once 'vendor/spidgorny/nadlib/init.php';
-}
-if (file_exists('nadlib/init.php')) {
+} elseif (file_exists('nadlib/init.php')) {
 	require_once 'nadlib/init.php';
-}
-if (file_exists('lib/nadlib/init.php')) {
+} elseif (file_exists('lib/nadlib/init.php')) {
 	require_once 'lib/nadlib/init.php';
-}
-if (file_exists('vendor/nadlib/nadlib/init.php')) {
+} elseif (file_exists('vendor/nadlib/nadlib/init.php')) {
 	require_once 'vendor/nadlib/nadlib/init.php';
 }
 

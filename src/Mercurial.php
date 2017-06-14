@@ -101,4 +101,11 @@ class Mercurial extends Base {
 		}
 	}
 
+	function status() {
+		/** @var Repo $repo */
+		foreach ($this->repos as $repo) {
+			$repo->status();
+		}
+	}
+
 }
