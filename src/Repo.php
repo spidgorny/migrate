@@ -18,31 +18,42 @@ class Repo {
 
 	protected $verbose;
 
+	public $execStatus;
+
 	function __construct($folder = NULL)
 	{
 		$this->path = $folder;
 	}
 
-	function setVerbose($v) {
+	function setVerbose($v)
+	{
 		$this->verbose = $v;
 	}
 
-	function exec($cmd, &$lines = []) {
+	public function getRevisionNr()
+	{
+		return $this->nr();
+	}
+
+	function exec($cmd, &$lines = [])
+	{
 		if ($this->verbose) {
 			echo '> ', $cmd, BR;
 		}
-		$line = exec($cmd, $lines);
+		$line = exec($cmd, $lines, $this->execStatus);
 		return $line;
 	}
 
-	function system($cmd) {
+	function system($cmd)
+	{
 		if ($this->verbose) {
 			echo '> ', $cmd, BR;
 		}
 		system($cmd);
 	}
 
-	static function decode($properties) {
+	static function decode($properties)
+	{
 		$repo = new static();
 		foreach ((array)$properties AS $key => $value) {
 			$repo->{$key} = $value;
@@ -50,16 +61,19 @@ class Repo {
 		return $repo;
 	}
 
-	function nr() {
+	function nr()
+	{
 		return intval($this->nr);
 	}
 
-	function getHash() {
+	function getHash()
+	{
 		$hash = str_replace('+', '', $this->hash);
 		return $hash;
 	}
 
-	function path() {
+	function path()
+	{
 		$path = str_replace('\\', '/', $this->path);
 		return $path;
 	}
@@ -67,12 +81,13 @@ class Repo {
 	function __toString()
 	{
 		return implode(TAB, [$this->hash, $this->nr, $this->tag,
-			 $this->date,
-			str_pad($this->path, 35, ' '), '"'.$this->message.'"']);
+			$this->date,
+			str_pad($this->path, 35, ' '), '"' . $this->message . '"']);
 	}
 
-	function check() {
-		$line = $this->exec('hg id -int '.$this->path);
+	function check()
+	{
+		$line = $this->exec('hg id -int ' . $this->path);
 		//echo $line, BR;
 		$parts = trimExplode(' ', $line);
 		//pre_print_r($parts);
@@ -92,7 +107,8 @@ class Repo {
 		chdir($save);
 	}
 
-	function install() {
+	function install()
+	{
 		$save = getcwd();
 		$ok = @chdir($this->path);
 		if ($ok) {
@@ -102,30 +118,35 @@ class Repo {
 
 			chdir($save);
 		} else {
-			throw new \InvalidArgumentException('Folder '.$this->path.' does not exist. Install aborted.');
+			throw new \InvalidArgumentException('Folder ' . $this->path . ' does not exist. Install aborted.');
 		}
 	}
 
-	function thg() {
+	function thg()
+	{
 		chdir($this->path);
 		system('thg');
 	}
 
-	function push() {
+	function push()
+	{
 		$save = getcwd();
 		chdir($this->path);
 		$this->system('hg push');
 		chdir($save);
 	}
 
-	function pull() {
+	function pull()
+	{
 		$save = getcwd();
 		chdir($this->path);
+		echo '[' . getcwd() . ']', BR;
 		$this->system('hg pull');
 		chdir($save);
 	}
 
-	function getPaths() {
+	function getPaths()
+	{
 		$save = getcwd();
 		chdir($this->path);
 
@@ -142,24 +163,39 @@ class Repo {
 		return $remoteOrigin;
 	}
 
-	function getDefaultPath() {
+	function getDefaultPath()
+	{
 		$paths = $this->getPaths();
 		return $paths['default'];
 	}
 
-	public function update() {
+	public function update()
+	{
 		$save = getcwd();
 		chdir($this->path);
+		echo '[' . getcwd() . ']', BR;
 		$this->system('hg update');
 		chdir($save);
 	}
 
-	public function status() {
+	public function status()
+	{
 		echo TAB, 'Repo: ', $this->path(), BR;
 		$save = getcwd();
 		chdir($this->path);
 		$this->system('hg status');
 		chdir($save);
+	}
+
+	public function checkRevision()
+	{
+		$save = getcwd();
+		chdir($this->path);
+		echo '[' . getcwd() . ']', BR;
+		$cmd = 'hg log -r ' . $this->getHash();
+		$this->exec($cmd, $output);
+		chdir($save);
+		return $output;
 	}
 
 }

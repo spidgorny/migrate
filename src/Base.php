@@ -9,6 +9,8 @@ class Base {
 	 */
 	var $repos;
 
+	public $execStatus;
+
 	protected $verbose;
 
 	/**
@@ -52,7 +54,7 @@ class Base {
 		if ($this->verbose) {
 			echo '> ', $cmd, BR;
 		}
-		exec($cmd, $output);
+		exec($cmd, $output, $this->execStatus);
 		return $output;
 	}
 

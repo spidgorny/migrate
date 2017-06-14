@@ -4,8 +4,15 @@ namespace spidgorny\migrate;
 
 class Local extends Base {
 
-	function __construct(array $repos) {
+	/**
+	 * @var Migrate
+	 */
+	var $app;
+
+	function __construct(array $repos, $app)
+	{
 		$this->repos = $repos;
+		$this->app = $app;
 	}
 
 	function index()
@@ -17,7 +24,8 @@ class Local extends Base {
 	 * Adds specified folder (default .) to the VERSION.json file
 	 * @param string $folder
 	 */
-	function add($folder = '.') {
+	function add($folder = '.')
+	{
 		if (!isset($this->repos[$folder])) {
 			$new = new Repo($folder);
 			$new->check();
@@ -30,7 +38,8 @@ class Local extends Base {
 	 * Removes specified folder (no default) from VERSION.json file
 	 * @param $folder
 	 */
-	function del($folder) {
+	function del($folder)
+	{
 		unset($this->repos[$folder]);
 		$this->dump();
 	}
@@ -38,11 +47,12 @@ class Local extends Base {
 	/**
 	 * Shows both the current VERSION.json and currently installed versions.
 	 */
-	function compare() {
+	function compare()
+	{
 		/** @var Repo $repo */
 		foreach ($this->repos as $repo) {
 			echo $repo, BR;
-			$r2 = clone $repo;	// so that id() will not replace
+			$r2 = clone $repo;    // so that id() will not replace
 			$r2->check();
 			echo $r2, BR;
 		}
@@ -52,7 +62,8 @@ class Local extends Base {
 	 * Runs "hg pull" and "hg update -r xxx" on each repository.
 	 * @param null $what
 	 */
-	function install($what = NULL) {
+	function install($what = NULL)
+	{
 		if ($what) {
 			$repo = $this->getRepoByName($what);
 			if ($repo) {
@@ -70,7 +81,8 @@ class Local extends Base {
 	/**
 	 * Runs composer install
 	 */
-	function composer() {
+	function composer()
+	{
 		$cmd = 'composer self-update';
 		echo '> ', $cmd, BR;
 		system($cmd);
@@ -83,7 +95,8 @@ class Local extends Base {
 	/**
 	 * Checks current versions, does install of new versions, composer (call on LIVE)
 	 */
-	function golive() {
+	function golive()
+	{
 //		$this->check();	// should not be called to prevent overwrite
 		$this->dump();
 		$this->install();
@@ -95,7 +108,8 @@ class Local extends Base {
 	 * Shows the default pull/push location for current folder. Allows to compare current and latest version (call on
 	 * LIVE)
 	 */
-	function info() {
+	function info()
+	{
 		$this->dump();
 		$remoteOrigin = $this->getMain()->getPaths();
 		$remoteRepo = $this->fetchRemote($remoteOrigin['default']);
@@ -109,7 +123,8 @@ class Local extends Base {
 	 * @param $url
 	 * @return Repo[]
 	 */
-	function fetchRemote($url) {
+	function fetchRemote($url)
+	{
 		$url = cap($url) . 'raw-file/tip/VERSION.json';
 		echo 'Downloading from ', $url, BR;
 		$json = file_get_contents($url);
@@ -124,7 +139,8 @@ class Local extends Base {
 	/**
 	 * Will fetch the latest version available and update to it. Like install but only for the main folder repo (.)
 	 */
-	function updateMain() {
+	function updateMain()
+	{
 		$this->dump();
 		$remoteOrigin = $this->getMain()->getPaths();
 		$remoteRepo = $this->fetchRemote($remoteOrigin['default']);
@@ -136,6 +152,32 @@ class Local extends Base {
 		echo 'to: ', BR;
 		echo $mainProject, BR;
 		$mainProject->install();
+	}
+
+	/**
+	 * Will upgrade to the revision, but not downgrade if already a child.
+	 * @param $what
+	 */
+	function ensure($what)
+	{
+		if ($what) {
+			$repo = $this->getRepoByName($what);
+			$output = $repo->checkRevision();
+			debug($this->execStatus);
+			if ($this->execStatus) {
+				$this->app->getMercurial()->pull($what);
+				$this->app->getMercurial()->update($what);
+			} else {
+				array_walk($output, function ($line) {
+					echo $line, BR;
+				});
+				$repo->check();
+				$nr = $repo->getRevisionNr();
+				echo 'Current revision: ', $nr, BR;
+			}
+		} else {
+			throw new \InvalidArgumentException('Please provide repo name');
+		}
 	}
 
 }

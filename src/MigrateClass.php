@@ -66,7 +66,7 @@ class Migrate {
 
 		$this->modules = [
 			'this' => $this,
-			'Local' => new Local($this->repos),
+			'Local' => new Local($this->repos, $this),
 			'Mercurial' => new Mercurial($this->repos),
 			'Remote' => new Remote(
 				$this->repos,
@@ -95,6 +95,27 @@ class Migrate {
 		}
 	}
 
+	/**
+	 * @return Local
+	 */
+	function getLocal() {
+		return $this->modules['Local'];
+	}
+
+	/**
+	 * @return Mercurial
+	 */
+	function getMercurial() {
+		return $this->modules['Mercurial'];
+	}
+
+	/**
+	 * @return Remote
+	 */
+	function getRemote() {
+		return $this->modules['Remote'];
+	}
+
 	function setVerbose($v) {
 		$this->verbose = $v;
 	}
@@ -114,8 +135,9 @@ class Migrate {
 	}
 
 	function run() {
+		//debug($_SERVER['argv']);
 		$cmd = ifsetor($_SERVER['argv'][1], 'index');
-		$res = array_slice($_SERVER['argv'], 2);
+		$res = array_slice($_SERVER['argv'], 1);
 		//echo $cmd, BR;
 		$done = false;
 		foreach ($this->modules as $module) {
