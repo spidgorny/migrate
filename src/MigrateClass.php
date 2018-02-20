@@ -77,6 +77,7 @@ class Migrate {
 				$this->id_rsa,
 				$this->branch
 			),
+			'Cleanup' => new \CleanupModule(),
 		];
 
 		if (in_array('--verbose', $_SERVER['argv'])
@@ -86,7 +87,7 @@ class Migrate {
 				/** @var $repo Repo */
 				$repo->setVerbose(true);
 			});
-			array_walk($this->modules, function ($mod) {
+			array_walk($this->modules, function (\ModuleInterface $mod) {
 				$mod->setVerbose(true);
 			});
 			$pos = array_search('--verbose', $_SERVER['argv']);

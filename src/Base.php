@@ -2,7 +2,7 @@
 
 namespace spidgorny\migrate;
 
-class Base {
+class Base implements \ModuleInterface {
 
 	/**
 	 * @var Repo[]

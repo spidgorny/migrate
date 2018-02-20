@@ -51,7 +51,7 @@ class Remote extends Base {
 				$home = ifsetor($_SERVER['HOMEDRIVE']) .
 					cap($_SERVER['HOMEPATH']);
 				// for mingw32
-				if ($_SERVER['MSYSTEM'] == "MINGW32") {
+				if (ifsetor($_SERVER['MSYSTEM']) == "MINGW32") {
 					$home = str_replace('\\', '/', $home);
 					$home = str_replace('c:', '/c', $home);
 				}

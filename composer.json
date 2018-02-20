@@ -10,6 +10,14 @@
 	],
 	"minimum-stability": "dev",
 	"require": {
+		"kevinlebrun/colors.php": "dev-master"
+	},
+	"require-dev": {
 		"atoum/atoum": "^2.8"
+	},
+	"autoload": {
+		"classmap": [
+			"src/"
+		]
 	}
 }
