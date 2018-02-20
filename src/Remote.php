@@ -44,7 +44,7 @@ class Remote extends Base {
 		$this->branch = $branch;
 
 		if (!$this->remoteUser) {
-			$this->remoteUser = $_SERVER['USERNAME'];
+			$this->remoteUser = ifsetor($_SERVER['USERNAME']);
 		}
 		if (!$this->id_rsa) {
 			if ($this->isWindows()) {

@@ -4,7 +4,7 @@
     "composerCommand": "php composer.phar",
     "remoteUser": null,
     "id_rsa": null,
-    "repos": null,
+    "repos": [],
     "verbose": false,
     "branch": "default"
 }
