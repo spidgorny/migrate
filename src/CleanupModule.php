@@ -25,6 +25,12 @@ class CleanupModule implements ModuleInterface {
 
 	var $docRoots = [];
 
+	/**
+	 * Current user
+	 * @var string
+	 */
+	var $username;
+
 	function __construct()
 	{
 		$this->c = new Color();
@@ -32,6 +38,7 @@ class CleanupModule implements ModuleInterface {
 		$this->protected = $this->findProtected($folders);
 		$this->docRoots = $this->findDocRoots();
 	//	print_r($this->docRoots);
+		$this->username = exec('whoami');
 	}
 
 	function setVerbose($bool)
@@ -55,16 +62,22 @@ class CleanupModule implements ModuleInterface {
 	function infoAbout($f)
 	{
 		$c = $this->c;
+
 		echo '== ', $f, PHP_EOL;
 		$project = $this->getProject($f);
 		echo TAB, 'project:', TAB, $c($project)->bg_green(), PHP_EOL;
 		$isRoot = in_array(realpath($f), $this->docRoots);
-		echo TAB, 'isRoot:', TAB, $isRoot ? $c('Yes')->bg_red() : 'No', PHP_EOL;
+		echo TAB, 'isRoot:', TAB, TAB,
+			$isRoot ? $c('Yes')->bg_red() : 'No', PHP_EOL;
 		if (!$isRoot) {
 			$files = $this->getFiles($f);
 			echo TAB, 'files:', TAB, TAB, $c($files)->bg_yellow(), PHP_EOL;
 			$prot = $this->isProt($f) ? $c('Yes')->bg_red() : 'No';
 			echo TAB, 'protected:', TAB, $prot, PHP_EOL;
+			$owner = $this->getOwner(fileowner($f));
+			echo TAB, 'owner:', TAB, TAB, $owner, PHP_EOL;
+			$link = is_link($f) ? $c('Yes')->bg_cyan() : 'No';
+			echo TAB, 'isLink:', TAB, TAB, $link, PHP_EOL;
 		}
 	}
 
@@ -106,7 +119,10 @@ class CleanupModule implements ModuleInterface {
 
 	function isProt($f)
 	{
-		return in_array($f, $this->protected);
+		return in_array($f, $this->protected)
+			|| in_array(realpath($f), $this->docRoots)
+			|| is_link($f)
+			|| $this->username != $this->getOwner(fileowner($f));
 	}
 
 	/**
@@ -199,6 +215,31 @@ class CleanupModule implements ModuleInterface {
 		preg_match('/"(.+?)"/', $str, $matches);
 //		print_r([$str, $matches]);
 		return ifsetor($matches[1]);
+	}
+
+	function getOwner($uid)
+	{
+		static $passwd;
+		if (!$passwd) {
+			exec('getent passwd', $lines);
+			$passwd = array_map(function ($line) {
+				$data = trimExplode(':', trim($line));
+				$cols = [
+					'login', 'pw', 'uid', 'gid', 'name', 'home', 'bash',
+				];
+				if (sizeof($cols) != sizeof($data)) {
+					$data += array_fill(sizeof($data), sizeof($cols) - sizeof($data), null);
+//					print_r($data);
+				}
+				return array_combine($cols, $data);
+			}, $lines);
+			$uidList = array_map(function (array $row) {
+				return $row['uid'];
+			}, $passwd);
+			$passwd = array_combine($uidList, $passwd);
+//			print_r($passwd);
+		}
+		return ifsetor($passwd[$uid]['login'], '<unknown>');	// login
 	}
 
 }
