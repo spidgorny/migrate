@@ -2,6 +2,15 @@
 
 use Colors\Color;
 
+function tab($text, $tabs = 1)
+{
+	// https://stackoverflow.com/questions/40731273/php-remove-terminal-codes-from-string
+	$onlyAscii = preg_replace('#\\x1b[[][^A-Za-z]*[A-Za-z]#', '', $text);
+	$len = strlen($onlyAscii);
+	$lenTabs = floor($len/8);
+	return $text . str_repeat(TAB, 1 + $tabs - $lenTabs);
+}
+
 class CleanupModule implements ModuleInterface {
 
 	var $verbose;
@@ -52,6 +61,7 @@ class CleanupModule implements ModuleInterface {
 	function cleanup()
 	{
 		$this->df();
+		$this->getOwner(posix_getuid());
 
 		$folders = glob('*', GLOB_ONLYDIR);
 		foreach ($folders as $f) {
@@ -63,22 +73,62 @@ class CleanupModule implements ModuleInterface {
 	{
 		$c = $this->c;
 
-		echo '== ', $f, PHP_EOL;
 		$project = $this->getProject($f);
-		echo TAB, 'project:', TAB, $c($project)->bg_green(), PHP_EOL;
 		$isRoot = in_array(realpath($f), $this->docRoots);
-		echo TAB, 'isRoot:', TAB, TAB,
-			$isRoot ? $c('Yes')->bg_red() : 'No', PHP_EOL;
 		if (!$isRoot) {
 			$files = $this->getFiles($f);
-			echo TAB, 'files:', TAB, TAB, $c($files)->bg_yellow(), PHP_EOL;
-			$prot = $this->isProt($f) ? $c('Yes')->bg_red() : 'No';
-			echo TAB, 'protected:', TAB, $prot, PHP_EOL;
 			$owner = $this->getOwner(fileowner($f));
-			echo TAB, 'owner:', TAB, TAB, $owner, PHP_EOL;
-			$link = is_link($f) ? $c('Yes')->bg_cyan() : 'No';
-			echo TAB, 'isLink:', TAB, TAB, $link, PHP_EOL;
+		} else {
+			$files = null;
+			$owner = null;
 		}
+		$this->render2($f, (object)[
+			'project' => $c($project)->bg_green().'',
+			'isRoot' => $isRoot ? $c('Yes')->bg_red().'' : 'No',
+			'files' => $c($files)->bg_yellow().'',
+			'prot' => $this->isProt($f)
+				? $c('Yes')->bg_red().'' : 'No',
+			'owner' => $owner == $this->username
+				? $c($owner)->bg_green().''
+				: $c($owner)->bg_red().'',
+			'isLink' => is_link($f)
+				? $c('Yes')->bg_cyan().'' : 'No',
+		]);
+	}
+
+	function render($f, stdClass $props)
+	{
+		$project = $props->project;
+		$isRoot = $props->isRoot;
+		$files = $props->files;
+		$prot = $props->prot;
+		$owner = $props->owner;
+		$isLink = $props->isLink;
+		echo '== ', $f, PHP_EOL;
+		echo TAB, 'project:', TAB, $project, PHP_EOL;
+		echo TAB, 'isRoot:', TAB, TAB, $isRoot, PHP_EOL;
+		echo TAB, 'files:', TAB, TAB, $files, PHP_EOL;
+		echo TAB, 'protected:', TAB, $prot, PHP_EOL;
+		echo TAB, 'owner:', TAB, TAB, $owner, PHP_EOL;
+		echo TAB, 'isLink:', TAB, TAB, $isLink, PHP_EOL;
+	}
+
+	function render2($f, stdClass $props)
+	{
+		//print_r($props);
+		$project = $props->project;
+		$isRoot = $props->isRoot;
+		$files = $props->files;
+		$prot = $props->prot;
+		$owner = $props->owner;
+		$isLink = $props->isLink;
+		echo tab($f, 2),
+			tab($project, 4),
+			'isRoot:', $isRoot, TAB,
+			tab('files:' . $files, 0), TAB,
+			'protected:', $prot, TAB,
+			'owner:', $owner, TAB,
+			'isLink:', $isLink, PHP_EOL;
 	}
 
 	function getProject($f)
@@ -132,6 +182,7 @@ class CleanupModule implements ModuleInterface {
 	function rm($folders)
 	{
 		$prev = $this->df();
+		$this->getOwner(posix_getuid());
 
 		$folders = func_get_args();
 		foreach ($folders as $f) {
