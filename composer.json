@@ -17,18 +17,13 @@
 	},
 	"autoload": {
 		"classmap": [
-			"src/",
-			"vendor/spidgorny/apache-config"
+			"src/"
 		]
 	},
 	"repositories": [
 		{
 			"type": "pear",
 			"url": "https://pear.php.net"
-		},
-		{
-			"type": "vcs",
-			"url": "https://github.com/spidgorny/apache-config"
 		}
 	]
 }
